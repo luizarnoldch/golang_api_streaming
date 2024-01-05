@@ -30,6 +30,7 @@ dynamo-local:
 e2e:
 	make unit
 	make coverage
+	make build
 	make deploy
 	sleep 5s
 	make f_test
