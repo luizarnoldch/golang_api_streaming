@@ -5,9 +5,10 @@ FOLDERS=($(ls -d lambdas/*/))
 test_lambda() {
   for folder in "${FOLDERS[@]}"; do
     (
-      aws lambda invoke --function-name StreamProyect-${folder} --payload file://events/${folder}/input.json --cli-binary-format raw-in-base64-out ./events/${folder}/output.json
+      folder_name=$(basename "${folder}")
+      aws lambda invoke --function-name StreamProyect-${folder_name} --payload file://events/${folder_name}/input.json --cli-binary-format raw-in-base64-out ./events/${folder_name}/output.json
       echo -e "\n"
-      cat ./events/${folder}/output.json
+      cat ./events/${folder_name}/output.json
       echo -e "\n"
     )
   done
