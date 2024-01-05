@@ -62,11 +62,11 @@ Resources:
           Properties:
             Path: /stream
             Method: get
-            RestApiId: !Ref ApiGatewayApi
+            RestApiId: !Ref StreamAPIGateway
 Outputs:
   StreamTable:
     Description: Stream Accounts DynamoDB Table
     Value: !Ref StreamTable
-  ApiGatewayApi:
+  StreamAPIGateway:
     Description: "API Gateway endpoint URL para documentos"
-    Value: !Sub "https://${ApiGatewayApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Value: !Sub "https://${StreamAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
