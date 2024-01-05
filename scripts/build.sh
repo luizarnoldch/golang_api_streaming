@@ -6,8 +6,6 @@ export GOOS="linux"
 export GOARCH="amd64"
 export CGO_ENABLED="0"
 
-mkdir -p ../bin
-
 build_lambda() {
     for folder in "${FOLDERS[@]}"; do
     (
