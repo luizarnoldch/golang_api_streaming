@@ -3,10 +3,6 @@ STACK_NAME := streaming-api
 
 DYNAMO-LOCAL := deployment/docker/dynamo-local.yml
 
-.PHONY: make_executable
-make_executable:
-	chmod +x -R ./scripts/
-
 init:
 	go mod init main
 update:
@@ -16,12 +12,12 @@ mock:
 coverage:
 	go test ./... -cover
 build:
-	make_executable
+	chmod +x -R ./scripts/
 	./scripts/build.sh
 unit:
 	go test ./...
 f_test:
-	make_executable
+	chmod +x -R ./scripts/
 	./scripts/func_test.sh
 deploy:
 	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities CAPABILITY_NAMED_IAM --resolve-s3
