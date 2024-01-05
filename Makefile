@@ -3,8 +3,10 @@ STACK_NAME := streaming-api
 
 DYNAMO-LOCAL := deployment/docker/dynamo-local.yml
 
+.PHONY: make_executable
 make_executable:
 	chmod +x -R ./scripts/
+
 init:
 	go mod init main
 update:
