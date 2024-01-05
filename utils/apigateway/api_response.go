@@ -2,6 +2,7 @@ package apigateway
 
 import (
 	"encoding/json"
+	"log"
 
 	"github.com/aws/aws-lambda-go/events"
 )
@@ -19,9 +20,10 @@ var (
 	}
 )
 
-
 func APIGatewayMessageResponse(statusCode int, message string) (events.APIGatewayProxyResponse, error) {
 	responseData, _ := json.Marshal(map[string]string{"message": message})
+	log.Println("Response:")
+	log.Printf("%s", responseData)
 	return events.APIGatewayProxyResponse{
 		Body:       string(responseData),
 		StatusCode: statusCode,
@@ -31,6 +33,8 @@ func APIGatewayMessageResponse(statusCode int, message string) (events.APIGatewa
 
 func APIGatewayDataResponse(statusCode int, data interface{}) (events.APIGatewayProxyResponse, error) {
 	responseData, _ := json.Marshal(data)
+	log.Println("Response:")
+	log.Printf("%s", responseData)
 	return events.APIGatewayProxyResponse{
 		Body:       string(responseData),
 		StatusCode: statusCode,
@@ -38,12 +42,13 @@ func APIGatewayDataResponse(statusCode int, data interface{}) (events.APIGateway
 	}, nil
 }
 
-
 func APIGatewayError(statusCode int, err error) (events.APIGatewayProxyResponse, error) {
-    errorMessage, _ := json.Marshal(map[string]string{"error": err.Error()})
-    return events.APIGatewayProxyResponse{
-        Body:       string(errorMessage),
-        StatusCode: statusCode,
+	errorMessage, _ := json.Marshal(map[string]string{"error": err.Error()})
+	log.Println("Response:")
+	log.Printf("%s", errorMessage)
+	return events.APIGatewayProxyResponse{
+		Body:       string(errorMessage),
+		StatusCode: statusCode,
 		Headers:    HEADERS_JSON,
-    }, nil
+	}, nil
 }

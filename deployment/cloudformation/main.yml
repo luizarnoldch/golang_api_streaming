@@ -52,7 +52,7 @@ Resources:
       Runtime: provided.al2
       Environment:
         Variables:
-          TABLE_NAME: !Ref StreamTable
+          STREAM_TABLE: !Ref StreamTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
