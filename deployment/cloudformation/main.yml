@@ -27,10 +27,10 @@ Resources:
         WriteCapacityUnits: 5
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
-  ApiGatewayApi:
+  StreamAPIGateway:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub "auth-api-${Stage}"
+      Name: !Sub "stream-apigateway-${Stage}"
       StageName: !Ref Stage
       OpenApiVersion: '2.0'
       Description: API supporting the application
@@ -41,12 +41,12 @@ Resources:
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowMethods: "'OPTIONS,DELETE,GET,HEAD,POST,PUT'"
         AllowOrigin: "'*'"
-  GetAllDocumentsFunction:
+  GetAllSreamFunction:
     Type: AWS::Serverless::Function
     Metadata:
       BuildMethod: go1.x
     Properties:
-      CodeUri: ../bin/get_all_stream.zip
+      CodeUri: ../../bin/get_all_stream.zip
       FunctionName: !Sub "${ProjectName}-get_all_stream"
       Handler: bootstrap
       Runtime: provided.al2
