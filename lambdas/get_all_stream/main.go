@@ -14,12 +14,12 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	streams, err := stream.GetAllStream(ctx)
 
 	if err != nil {
-		apigateway.APIGatewayError(http.StatusNoContent, err)
+		return apigateway.APIGatewayError(http.StatusNoContent, err), err
 	}
 
-	return apigateway.APIGatewayDataResponse(http.StatusOK, streams)
+	return apigateway.APIGatewayDataResponse(http.StatusOK, streams), nil
 }
 
-func main(){
+func main() {
 	lambda.Start(handler)
 }
