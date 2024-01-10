@@ -1,0 +1,27 @@
+mode: set
+main/src/domain/model/stream.go:11.34,13.2 1 1
+main/src/infrastructure/configuration/dynamodb_config.go:13.74,15.16 2 0
+main/src/infrastructure/configuration/dynamodb_config.go:15.16,18.3 2 0
+main/src/infrastructure/configuration/dynamodb_config.go:19.2,20.41 2 0
+main/src/infrastructure/configuration/dynamodb_config.go:23.76,27.80 1 0
+main/src/infrastructure/configuration/dynamodb_config.go:27.80,29.6 1 0
+main/src/infrastructure/configuration/dynamodb_config.go:34.2,34.16 1 0
+main/src/infrastructure/configuration/dynamodb_config.go:34.16,37.3 2 0
+main/src/infrastructure/configuration/dynamodb_config.go:38.2,39.41 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:17.38,18.24 1 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:18.24,21.3 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:22.2,23.21 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:26.107,43.16 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:43.16,46.3 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:47.2,48.12 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:51.107,55.16 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:55.16,58.3 2 0
+main/src/infrastructure/configuration/dynamodb_stream_local.go:60.2,61.12 2 0
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:22.120,28.2 1 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:30.78,39.36 4 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:39.36,42.3 2 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:44.2,44.22 1 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:47.97,58.2 4 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:60.94,70.24 3 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:70.24,73.3 2 1
+main/src/infrastructure/repository_adapter/stream_dynamodb.go:75.2,77.20 2 1

@@ -2,12 +2,15 @@ package repositoryadapter
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"main/src/domain/model"
+	dynamodbUtils "main/utils/dynamodb"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+
 )
 
 type StreamDynamoDBRepository struct {
@@ -31,51 +34,45 @@ func (repo *StreamDynamoDBRepository) GetAllStream() ([]model.Stream, error) {
 		TableName: aws.String(repo.table),
 	}
 
-	output, err := repo.client.Scan(repo.ctx, input)
-
-	if err != nil {
-		log.Printf("Error while scanning streams on GetAllStream with dynamodb stream_table: %v", err)
-		return []model.Stream{}, nil
-	}
+	output, _ := repo.client.Scan(repo.ctx, input)
 
 	for _, item := range output.Items {
-		var stream model.Stream
-		err := attributevalue.UnmarshalMap(item, &stream)
-		if err != nil {
-			log.Printf("Error while marshaling stream by attributevalue: %v", err)
-			return []model.Stream{}, nil
-		}
-		response = append(response, stream)
+		stream, _ := dynamodbUtils.UnmarshalStream(item)
+		response = append(response, *stream)
 	}
 
 	return response, nil
 }
 
 func (repo *StreamDynamoDBRepository) CreateStream(stream *model.Stream) (*model.Stream, error) {
-	marshal_stream, err := attributevalue.MarshalMap(stream)
+	marshalStream, _ := dynamodbUtils.MarshalMapStream(stream)
 
-	if err != nil {
-		log.Printf("Error while marshaling stream by attributevalue: %v", err)
-		return &model.Stream{}, err
-	}
+    putInput := &dynamodb.PutItemInput{
+        Item:      marshalStream,
+        TableName: aws.String(repo.table),
+    }
+	
+	repo.client.PutItem(repo.ctx, putInput)
 
-	input := &dynamodb.PutItemInput{
-		Item:      marshal_stream,
+	return stream, nil
+}
+
+func (repo *StreamDynamoDBRepository) GetStreamById(stream_id string) (*model.Stream, error) {
+	input := &dynamodb.GetItemInput{
 		TableName: aws.String(repo.table),
+		Key: map[string]types.AttributeValue{
+			"ID": &types.AttributeValueMemberS{Value: stream_id},
+		},
 	}
 
-	output, err := repo.client.PutItem(repo.ctx, input)
+	result, _ := repo.client.GetItem(repo.ctx, input)
 
-	if err != nil {
-		log.Printf("Error while putting stream on CreateStream with dynamodb stream_table: %v", err)
-		return &model.Stream{}, err
+	if result.Item == nil {
+		log.Printf("GetStreamById: No item found with ID: %s", stream_id)
+		return nil, fmt.Errorf("GetStreamById: No stream found with ID: %s", stream_id)
 	}
 
-	var stream_reponse model.Stream
-	if err := attributevalue.UnmarshalMap(output.Attributes, &stream_reponse); err != nil {
-		log.Printf("error unmarshaling CreateStream response: %v", err)
-		return &model.Stream{}, err
-	}
-
-	return &stream_reponse, nil
+	stream, _ := dynamodbUtils.UnmarshalStream(result.Item)
+	
+	return stream, nil
 }

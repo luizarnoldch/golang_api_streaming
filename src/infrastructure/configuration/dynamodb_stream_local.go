@@ -27,13 +27,13 @@ func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context
 	_, err := client.CreateTable(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
-				AttributeName: aws.String("id"),
+				AttributeName: aws.String("ID"),
 				AttributeType: types.ScalarAttributeTypeS,
 			},
 		},
 		KeySchema: []types.KeySchemaElement{
 			{
-				AttributeName: aws.String("id"),
+				AttributeName: aws.String("ID"),
 				KeyType:       types.KeyTypeHash,
 			},
 		},
