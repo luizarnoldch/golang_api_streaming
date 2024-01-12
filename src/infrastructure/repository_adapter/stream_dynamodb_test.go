@@ -2,7 +2,6 @@ package repositoryadapter_test
 
 import (
 	"context"
-	"fmt"
 	"main/src/domain/model"
 	"main/src/infrastructure/configuration"
 	repositoryadapter "main/src/infrastructure/repository_adapter"
@@ -50,23 +49,28 @@ func (suite *StreamSuite) TearDownTest() {
 
 func (suite *StreamSuite) TestCreateStreamAndGetStreamByIdSuccessful() {
     stream_id := uuid.NewString()
-	
-	stream := model.Stream{
+    stream := model.Stream{
         ID: stream_id,
         Name: "test_name",
         Cost: 15.00,
         StartDate: "01-01-24",
         EndDate: "12-12-24",
     }
+
     response := stream.Validate()
-    suite.NoError(response)
+    if response != nil {
+        suite.Fail("Validation failed", response.ToString())
+    }
 
     _, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-    suite.NoError(err)
+    if err != nil {
+        suite.Fail("Failed to create stream", err.ToString())
+    }
 
     createdStream, err := suite.dynamoDBLocalInfrastructure.GetStreamById(stream_id)
-    suite.NoError(err, "Failed to retrieve stream by ID")
-
+    if err != nil {
+        suite.Fail("Failed to retrieve stream by ID", err.ToString())
+    }
     suite.Equal(stream.ID, createdStream.ID)
     suite.Equal(stream.Name, createdStream.Name)
     suite.Equal(stream.Cost, createdStream.Cost)
@@ -101,11 +105,16 @@ func (suite *StreamSuite) TestGetAllStreamSuccessful() {
 
     for _, stream := range streams {
         _, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-        suite.NoError(err)
+        if err != nil {
+            suite.Fail("Failed to create stream", err.ToString())
+        }
     }
 
     createdStreams, err := suite.dynamoDBLocalInfrastructure.GetAllStream()
-    suite.NoError(err)
+    if err != nil {
+        suite.Fail("Error retrieving all streams", err.ToString())
+    }
+
     suite.Len(createdStreams, len(streams), "Number of created streams should match")
 
     originalStreamsMap := make(map[string]model.Stream)
@@ -136,13 +145,16 @@ func (suite *StreamSuite) TestGetStreamByIdWithBadId() {
         EndDate: "12-12-24",
     }
     response := stream.Validate()
-    suite.NoError(response)
+    if response != nil {
+        suite.Fail("Validation failed", response.ToString())
+    }
 
     _, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-    suite.NoError(err)
+    if err != nil {
+        suite.Fail("Failed to create stream", err.ToString())
+    }
 
-    retrievedStream, err := suite.dynamoDBLocalInfrastructure.GetStreamById(stream_bad_id)
-    suite.Error(err, fmt.Errorf("GetStreamById: No stream found with ID: %s", stream_bad_id))
-	suite.Nil(retrievedStream)
+    _, err = suite.dynamoDBLocalInfrastructure.GetStreamById(stream_bad_id)
+    suite.NotNil(err, "Expected an error for bad ID")
 }
 

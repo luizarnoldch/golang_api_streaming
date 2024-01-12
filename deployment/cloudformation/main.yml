@@ -12,6 +12,20 @@ Parameters:
     Description: Stage of API GATEWAY
     Default: Prod
 Resources:
+  StreamTableKMSKey:
+  Type: 'AWS::KMS::Key'
+  Properties:
+    Description: 'KMS Key for encrypting the StreamTable'
+    KeyPolicy:
+      Version: '2012-10-17'
+      Id: key-default-1
+      Statement:
+        - Sid: Enable IAM User Permissions
+          Effect: Allow
+          Principal:
+            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+          Action: 'kms:*'
+          Resource: '*'
   StreamTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -27,6 +41,11 @@ Resources:
         WriteCapacityUnits: 5
       PointInTimeRecoverySpecification:
         PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !Ref StreamTableKMSKey
+
   StreamAPIGateway:
     Type: AWS::Serverless::Api
     Properties:

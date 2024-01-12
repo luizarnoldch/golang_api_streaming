@@ -19,12 +19,12 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         return apigateway.APIGatewayError(http.StatusBadRequest, err), err
     }
 
-    streams, err := stream.CreateStream(ctx, &streamRequest)
-    if err != nil {
-        return apigateway.APIGatewayError(http.StatusInternalServerError, err), err
+    stream, errCreate := stream.CreateStream(ctx, &streamRequest)
+    if errCreate != nil {
+        return apigateway.APIGatewayError(errCreate.Code, errCreate.ToError()), errCreate.ToError()
     }
 
-    return apigateway.APIGatewayDataResponse(http.StatusOK, streams), nil
+    return apigateway.APIGatewayDataResponse(http.StatusOK, stream), nil
 }
 
 

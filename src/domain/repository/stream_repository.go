@@ -1,9 +1,12 @@
 package repository
 
-import "main/src/domain/model"
+import (
+	"main/src/domain/model"
+	appError "main/utils/error"
+)
 
 type StreamRepository interface {
-	GetAllStream() ([]model.Stream, error)
-	CreateStream(*model.Stream) (*model.Stream, error)
-	GetStreamById(string) (*model.Stream, error)
+	GetAllStream() ([]model.Stream, *appError.Error)
+	CreateStream(*model.Stream) (*model.Stream, *appError.Error)
+	GetStreamById(string) (*model.Stream, *appError.Error)
 }

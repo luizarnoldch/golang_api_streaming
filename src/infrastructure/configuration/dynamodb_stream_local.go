@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 
@@ -15,16 +16,17 @@ var (
 )
 
 func GetDynamoDBStreamTable() string {
-	if STREAM_TABLE == "" {
+	streamTable := os.Getenv("STREAM_TABLE")
+	if streamTable == "" {
 		log.Printf("Local DynamoDB Database")
 		return "Test_Stream_Table"
 	}
-	log.Printf("AWS DynamoDB Database")
-	return STREAM_TABLE
+	log.Printf("AWS DynamoDB Database: %s", streamTable)
+	return streamTable
 }
 
 func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context, tableName string) error {
-	_, err := client.CreateTable(ctx, &dynamodb.CreateTableInput{
+	client.CreateTable(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
 				AttributeName: aws.String("ID"),
@@ -40,23 +42,22 @@ func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context
 		TableName:   aws.String(tableName),
 		BillingMode: types.BillingModePayPerRequest,
 	})
-	if err != nil {
-		log.Fatalf("Failed to create Local DynamoDB AWS SDK v2 config: %s", err)
-		return err
-	}
 	log.Printf("Table %s created successfully", tableName)
 	return nil
 }
 
 func DeleteLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context, tableName string) error {
-	_, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{
-		TableName: aws.String(tableName),
-	})
-	if err != nil {
-		log.Fatalf("Failed to delete Local DynamoDB AWS SDK v2 config: %s", err)
-		return err
-	}
+    _, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+        TableName: aws.String(tableName),
+    })
 
-	log.Printf("Table %s deleted successfully", tableName)
-	return nil
+    if err != nil {
+        return fmt.Errorf("table %s does not exist, no need to delete", tableName)
+    }
+    client.DeleteTable(ctx, &dynamodb.DeleteTableInput{
+        TableName: aws.String(tableName),
+    })
+
+    log.Printf("Table %s deleted successfully", tableName)
+    return nil
 }

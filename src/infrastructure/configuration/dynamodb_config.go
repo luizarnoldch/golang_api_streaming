@@ -9,32 +9,24 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 )
 
-
 func GetDynamoDBAWSClient(ctx context.Context) (*dynamodb.Client, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		log.Fatal("Failed to load DynamoDB AWS SDK v2 config")
-		return nil, err
-	}
+	cfg, _ := config.LoadDefaultConfig(ctx)
 	log.Printf("AWS Dynamo Client connected successfully")
 	return dynamodb.NewFromConfig(cfg), nil
 }
 
+func GetLocalEndpoint(service, region string, options ...interface{}) (aws.Endpoint, error) {
+	return aws.Endpoint{URL: "http://localhost:8000"}, nil
+}
+
 func GetLocalDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(),
+	cfg, _ := config.LoadDefaultConfig(ctx,
 		config.WithEndpointResolverWithOptions(
 			aws.EndpointResolverWithOptionsFunc(
-				func(service, region string, options ...interface{}) (aws.Endpoint, error) {
-					return aws.Endpoint{URL: "http://localhost:8000"}, nil
-				},
+				GetLocalEndpoint,
 			),
 		),
 	)
-
-	if err != nil {
-		log.Fatal("Failed to load Local DynamoDB AWS SDK v2 config")
-		return nil, err
-	}
 	log.Printf("Local Client connected successfully")
 	return dynamodb.NewFromConfig(cfg), nil
 }

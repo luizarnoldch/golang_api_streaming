@@ -9,18 +9,16 @@ update:
 	go mod tidy
 mock:
 	mockery --all --output ./mocks
-coverage:
-	go test ./... -cover
-cover-unit:
-	go test ./... -coverprofile=coverage-report.out
-	go tool cover -html=coverage-report.out -o coverage-report.html
-	go tool cover -func=coverage-report.out
-	go run ./utils/coverage/coverage_generator.go
 build:
 	chmod +x -R ./scripts/
 	./scripts/build.sh
 unit:
 	go test ./...
+coverage:
+	go test ./... -coverprofile=coverage-report.out
+	go tool cover -html=coverage-report.out -o coverage-report.html
+	go tool cover -func=coverage-report.out
+	go run ./utils/coverage/coverage_generator.go
 f_test:
 	chmod +x -R ./scripts/
 	./scripts/func_test.sh
@@ -29,14 +27,14 @@ deploy:
 destroy:
 	aws cloudformation delete-stack --stack-name $(STACK_NAME)
 dynamo-up:
-	docker-compose -f ${DYNAMO-LOCAL} up -d
+	docker-compose -f $(DYNAMO-LOCAL) up -d
 dynamo-stop:
-	docker-compose -f ${DYNAMO-LOCAL} stop
+	docker-compose -f $(DYNAMO-LOCAL) stop
 dynamo-start:
-	docker-compose -f ${DYNAMO-LOCAL} start
+	docker-compose -f $(DYNAMO-LOCAL) start
 dynamo-destroy:
-	make dynamo-stop
-	docker-compose -f ${DYNAMO-LOCAL} down -v && docker rmi $$(docker images -q amazon/dynamodb-local) || true
+	docker-compose -f $(DYNAMO-LOCAL) down -v
+	docker rmi $(shell docker images amazon/dynamodb-local -q)
 e2e:
 	make unit
 	make coverage
@@ -44,3 +42,9 @@ e2e:
 	make deploy
 	sleep 5s
 	make f_test
+ci:
+	make dynamo-up
+	sleep 5s || timeout /t 5
+	make unit
+	make coverage
+	make dynamo-destroy
