@@ -24,9 +24,14 @@ func (suite *ErrorSuite) TestErrorToString() {
 	suite.Equal("Resource not found", e.ToString(), "Error message should match")
 }
 
-func (suite *ErrorSuite) TestErrorToError() {
-	e := error.NewError(http.StatusNotFound, "Resource not found")
-	suite.Equal("Resource not found", e.ToString(), "Error message should match")
+// TestToError tests the ToError method
+func (suite *ErrorSuite) TestToError() {
+    customErr := error.NewError(http.StatusBadRequest, "custom error")
+    suite.NotNil(customErr)
+
+    err := customErr.ToError()
+    suite.NotNil(suite.T(), err)
+    suite.Equal("custom error", err.Error(), "Error message should match")
 }
 
 // TestNewError tests the creation of a new generic error

@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
-	"main/src/domain/model"
-	"main/src/infrastructure/api/stream"
+	stream_handler "main/src/streams/application/use_cases"
+	"main/src/streams/domain/model"
 	"main/utils/apigateway"
 	"net/http"
 
@@ -19,7 +19,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
         return apigateway.APIGatewayError(http.StatusBadRequest, err), err
     }
 
-    stream, errCreate := stream.CreateStream(ctx, &streamRequest)
+    stream, errCreate := stream_handler.CreateStream(ctx, &streamRequest)
     if errCreate != nil {
         return apigateway.APIGatewayError(errCreate.Code, errCreate.ToError()), errCreate.ToError()
     }

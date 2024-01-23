@@ -2,7 +2,8 @@ package configuration_test
 
 import (
 	"context"
-	"main/src/infrastructure/configuration"
+	"main/src/streams/infrastructure/configuration"
+    dynamodbUtils "main/utils/dynamodb"
 	"os"
 	"testing"
 
@@ -10,9 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/stretchr/testify/assert"
 )
-
-
-
 
 func TestGetDynamoDBStreamTableWithEnvSet(t *testing.T) {
     // Establecer la variable de entorno para la prueba
@@ -36,7 +34,7 @@ func TestGetDynamoDBStreamTableWithoutEnvSet(t *testing.T) {
 
 func TestCreateLocalDynamoDBStreamTable(t *testing.T) {
     ctx := context.TODO()
-    client, err := configuration.GetLocalDynamoDBClient(ctx)
+    client, err := dynamodbUtils.GetLocalDynamoDBClient(ctx)
     assert.NoError(t, err)
 
     tableName := configuration.GetDynamoDBStreamTable()
@@ -54,4 +52,18 @@ func TestCreateLocalDynamoDBStreamTable(t *testing.T) {
 
     err = configuration.DeleteLocalDynamoDBStreamTable(client, ctx, tableName)
 	assert.NoError(t, err)
+}
+
+func TestDeleteTableNotExists(t *testing.T) {
+    ctx := context.TODO()
+    client, err := dynamodbUtils.GetLocalDynamoDBClient(ctx)
+    assert.NoError(t, err)
+
+    tableName := "NonExistentTable"
+
+    err = configuration.DeleteLocalDynamoDBStreamTable(client, ctx, tableName)
+
+    assert.Error(t, err, "Expected an error when trying to delete a non-existent table")
+
+    assert.Contains(t, err.Error(), "does not exist, no need to delete")
 }

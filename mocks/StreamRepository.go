@@ -3,7 +3,8 @@
 package mocks
 
 import (
-	model "main/src/domain/model"
+	model "main/src/streams/domain/model"
+	error "main/utils/error"
 
 	mock "github.com/stretchr/testify/mock"
 )
@@ -14,7 +15,7 @@ type StreamRepository struct {
 }
 
 // CreateStream provides a mock function with given fields: _a0
-func (_m *StreamRepository) CreateStream(_a0 *model.Stream) (*model.Stream, error) {
+func (_m *StreamRepository) CreateStream(_a0 *model.Stream) (*model.Stream, *error.Error) {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
@@ -22,8 +23,8 @@ func (_m *StreamRepository) CreateStream(_a0 *model.Stream) (*model.Stream, erro
 	}
 
 	var r0 *model.Stream
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*model.Stream) (*model.Stream, error)); ok {
+	var r1 *error.Error
+	if rf, ok := ret.Get(0).(func(*model.Stream) (*model.Stream, *error.Error)); ok {
 		return rf(_a0)
 	}
 	if rf, ok := ret.Get(0).(func(*model.Stream) *model.Stream); ok {
@@ -34,17 +35,19 @@ func (_m *StreamRepository) CreateStream(_a0 *model.Stream) (*model.Stream, erro
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(*model.Stream) error); ok {
+	if rf, ok := ret.Get(1).(func(*model.Stream) *error.Error); ok {
 		r1 = rf(_a0)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*error.Error)
+		}
 	}
 
 	return r0, r1
 }
 
 // GetAllStream provides a mock function with given fields:
-func (_m *StreamRepository) GetAllStream() ([]model.Stream, error) {
+func (_m *StreamRepository) GetAllStream() ([]model.Stream, *error.Error) {
 	ret := _m.Called()
 
 	if len(ret) == 0 {
@@ -52,8 +55,8 @@ func (_m *StreamRepository) GetAllStream() ([]model.Stream, error) {
 	}
 
 	var r0 []model.Stream
-	var r1 error
-	if rf, ok := ret.Get(0).(func() ([]model.Stream, error)); ok {
+	var r1 *error.Error
+	if rf, ok := ret.Get(0).(func() ([]model.Stream, *error.Error)); ok {
 		return rf()
 	}
 	if rf, ok := ret.Get(0).(func() []model.Stream); ok {
@@ -64,17 +67,19 @@ func (_m *StreamRepository) GetAllStream() ([]model.Stream, error) {
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func() error); ok {
+	if rf, ok := ret.Get(1).(func() *error.Error); ok {
 		r1 = rf()
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*error.Error)
+		}
 	}
 
 	return r0, r1
 }
 
 // GetStreamById provides a mock function with given fields: _a0
-func (_m *StreamRepository) GetStreamById(_a0 string) (*model.Stream, error) {
+func (_m *StreamRepository) GetStreamById(_a0 string) (*model.Stream, *error.Error) {
 	ret := _m.Called(_a0)
 
 	if len(ret) == 0 {
@@ -82,8 +87,8 @@ func (_m *StreamRepository) GetStreamById(_a0 string) (*model.Stream, error) {
 	}
 
 	var r0 *model.Stream
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string) (*model.Stream, error)); ok {
+	var r1 *error.Error
+	if rf, ok := ret.Get(0).(func(string) (*model.Stream, *error.Error)); ok {
 		return rf(_a0)
 	}
 	if rf, ok := ret.Get(0).(func(string) *model.Stream); ok {
@@ -94,10 +99,12 @@ func (_m *StreamRepository) GetStreamById(_a0 string) (*model.Stream, error) {
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(string) error); ok {
+	if rf, ok := ret.Get(1).(func(string) *error.Error); ok {
 		r1 = rf(_a0)
 	} else {
-		r1 = ret.Error(1)
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*error.Error)
+		}
 	}
 
 	return r0, r1

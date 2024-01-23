@@ -44,7 +44,8 @@ e2e:
 	make f_test
 ci:
 	make dynamo-up
-	sleep 5s || timeout /t 5
+	sleep 7s || timeout /t 7
 	make unit
+	sleep 3s || timeout /t 3
 	make coverage
 	make dynamo-destroy

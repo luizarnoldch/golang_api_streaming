@@ -2,9 +2,9 @@ package service
 
 import (
 	"log"
-	"main/src/domain/model"
+	"main/src/streams/domain/model"
 	appError "main/utils/error"
-	"main/src/domain/repository"
+	"main/src/streams/domain/repository"
 
 	"github.com/google/uuid"
 )
@@ -24,12 +24,11 @@ func (service *StreamDynamoDBService) GetAllStream() ([]model.Stream, *appError.
 }
 
 func (service *StreamDynamoDBService) CreateStream(req *model.Stream) (*model.Stream, *appError.Error) {
+	req.ID = uuid.NewString()
 	if err := req.Validate(); err != nil {
 		log.Printf("error while validating request from CreateStream Service: %v", err)
 		return &model.Stream{}, err
 	}
-
-	req.ID = uuid.NewString()
 
 	return service.repo.CreateStream(req)
 }
