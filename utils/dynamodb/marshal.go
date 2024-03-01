@@ -14,13 +14,16 @@ func UnmarshalStream(item map[string]types.AttributeValue) (*model.Stream, error
 		log.Printf("Error unmarshaling result: %s", err)
 		return nil, err
 	}
-
     log.Printf("Unmarshalled Stream: %+v", stream)
 	return &stream, nil
 }
 
 func MarshalMapStream(stream *model.Stream) (map[string]types.AttributeValue, error) {
-	marshalStream, _ := attributevalue.MarshalMap(stream)
+	marshalStream, err := attributevalue.MarshalMap(stream)
+	if err != nil {
+		log.Printf("Error marshaling result: %s", err)
+		return nil, err
+	}
     log.Printf("Marshalled Stream: %+v", marshalStream)
 	return marshalStream, nil
 }

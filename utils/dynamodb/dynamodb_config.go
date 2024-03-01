@@ -10,8 +10,11 @@ import (
 )
 
 func GetDynamoDBAWSClient(ctx context.Context) (*dynamodb.Client, error) {
-	cfg, _ := config.LoadDefaultConfig(ctx)
-	log.Printf("AWS Dynamo Client connected successfully")
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		log.Printf("error while getting client from AWS")
+		return nil, err
+	}
 	return dynamodb.NewFromConfig(cfg), nil
 }
 

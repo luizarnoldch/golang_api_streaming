@@ -14,8 +14,8 @@ import (
 func CreateStream(ctx context.Context, req *model.Stream) (*model.Stream, *appError.Error) {
 	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(ctx)
 	if err != nil {
-		log.Printf("Failed to lead DynamoDB from CreateStream API Function")
-		return &model.Stream{}, appError.NewUnexpectedError("Failed to lead DynamoDB from CreateStream API Function")
+		log.Printf("Failed to load DynamoDB from CreateStream API Function")
+		return &model.Stream{}, appError.NewUnexpectedError("Failed to load DynamoDB from CreateStream API Function")
 	}
 
 	dynamoDBtable := configuration.GetDynamoDBStreamTable()
