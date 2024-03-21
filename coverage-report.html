@@ -55,17 +55,17 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">main/src/streams/application/service/stream_dynamodb_service.go (75.0%)</option>
+				<option value="file0">main/src/streams/application/service/stream_dynamodb_service.go (0.0%)</option>
 				
 				<option value="file1">main/src/streams/domain/model/stream.go (100.0%)</option>
 				
-				<option value="file2">main/src/streams/infrastructure/adapter/stream_dynamodb.go (78.6%)</option>
+				<option value="file2">main/src/streams/infrastructure/adapter/stream_dynamodb.go (63.3%)</option>
 				
-				<option value="file3">main/src/streams/infrastructure/configuration/dynamodb_stream_local.go (100.0%)</option>
+				<option value="file3">main/src/streams/infrastructure/configuration/dynamodb_stream_local.go (76.0%)</option>
 				
-				<option value="file4">main/utils/dynamodb/dynamodb_config.go (100.0%)</option>
+				<option value="file4">main/utils/dynamodb/dynamodb_config.go (77.8%)</option>
 				
-				<option value="file5">main/utils/dynamodb/marshal.go (100.0%)</option>
+				<option value="file5">main/utils/dynamodb/marshal.go (83.3%)</option>
 				
 				<option value="file6">main/utils/error/error.go (100.0%)</option>
 				
@@ -96,28 +96,32 @@ type StreamDynamoDBService struct {
         repo repository.StreamRepository
 }
 
-func NewStreamDynamoDBService(repo repository.StreamRepository) *StreamDynamoDBService <span class="cov8" title="1">{
+func NewStreamDynamoDBService(repo repository.StreamRepository) *StreamDynamoDBService <span class="cov0" title="0">{
         return &amp;StreamDynamoDBService{
                 repo: repo,
         }
 }</span>
 
-func (service *StreamDynamoDBService) GetAllStream() ([]model.Stream, *appError.Error) <span class="cov8" title="1">{
+func (service *StreamDynamoDBService) GetAllStream() ([]model.Stream, *appError.Error) <span class="cov0" title="0">{
         return service.repo.GetAllStream()
 }</span>
 
-func (service *StreamDynamoDBService) CreateStream(req *model.Stream) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
+func (service *StreamDynamoDBService) GetStreamById(stream_id string) (*model.Stream, *appError.Error) <span class="cov0" title="0">{
+        return service.repo.GetStreamById(stream_id)
+}</span>
+
+func (service *StreamDynamoDBService) CreateStream(req *model.Stream) (*model.Stream, *appError.Error) <span class="cov0" title="0">{
         req.ID = uuid.NewString()
         if err := req.Validate(); err != nil </span><span class="cov0" title="0">{
                 log.Printf("error while validating request from CreateStream Service: %v", err)
-                return &amp;model.Stream{}, err
+                return nil, err
         }</span>
 
-        <span class="cov8" title="1">return service.repo.CreateStream(req)</span>
+        <span class="cov0" title="0">return service.repo.CreateStream(req)</span>
 }
 
-func (service *StreamDynamoDBService) GetStreamById(stream_id string) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
-        return service.repo.GetStreamById(stream_id)
+func (service *StreamDynamoDBService) DeleteStream(stream_id string) (*appError.Error) <span class="cov0" title="0">{
+        return service.repo.DeleteStream(stream_id)
 }</span>
 </pre>
 		
@@ -159,9 +163,9 @@ func (s Stream) Validate() *appError.Error <span class="cov8" title="1">{
 }
 
 func validateUUID(id string) *appError.Error <span class="cov8" title="1">{
-        uuidRegex := regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
+        uuidRegex := regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
         if !uuidRegex.MatchString(id) </span><span class="cov8" title="1">{
-                return appError.NewValidationError("Invalid UUID format for ID")
+                return appError.NewValidationError("Invalid ID: The ID must be a valid UUID.")
         }</span>
         <span class="cov8" title="1">return nil</span>
 }
@@ -200,12 +204,14 @@ import (
         "context"
         "log"
         "main/src/streams/domain/model"
-        dynamodbUtils "main/utils/dynamodb"
+        "main/src/streams/domain/repository"
         appError "main/utils/error"
 
         "github.com/aws/aws-sdk-go-v2/aws"
         "github.com/aws/aws-sdk-go-v2/service/dynamodb"
         "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+        "github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+        "github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 )
 
 type StreamDynamoDBRepository struct {
@@ -214,7 +220,7 @@ type StreamDynamoDBRepository struct {
         table  string
 }
 
-func NewStreamDynamoDBRepository(client *dynamodb.Client, ctx context.Context, table string) *StreamDynamoDBRepository <span class="cov8" title="1">{
+func NewStreamDynamoDBRepository(client *dynamodb.Client, ctx context.Context, table string) repository.StreamRepository <span class="cov8" title="1">{
         return &amp;StreamDynamoDBRepository{
                 client: client,
                 ctx:    ctx,
@@ -222,40 +228,41 @@ func NewStreamDynamoDBRepository(client *dynamodb.Client, ctx context.Context, t
         }
 }</span>
 
-func (repo *StreamDynamoDBRepository) GetAllStream() ([]model.Stream, *appError.Error) <span class="cov8" title="1">{
-        var response []model.Stream
-
-        input := &amp;dynamodb.ScanInput{
-                TableName: aws.String(repo.table),
-        }
-
-        output, err := repo.client.Scan(repo.ctx, input)
-
+func (repo *StreamDynamoDBRepository) UpdateStreamById(stream_id string, stream *model.Stream) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
+        updateBuilder := expression.Set(
+                expression.Name("name"),expression.Value(stream.Name)).Set(
+                expression.Name("cost"), expression.Value(stream.Cost)).Set(
+                expression.Name("start_date"), expression.Value(stream.StartDate)).Set(
+                expression.Name("end_date"), expression.Value(stream.StartDate))
+        expr, err := expression.NewBuilder().WithUpdate(updateBuilder).Build()
         if err != nil </span><span class="cov0" title="0">{
-        log.Printf("Scan error in GetAllStream: %v", err)
-        return nil, appError.NewUnexpectedError("Error scanning DynamoDB table")
-    }</span>
-
-        <span class="cov8" title="1">for _, item := range output.Items </span><span class="cov8" title="1">{
-                stream, _ := dynamodbUtils.UnmarshalStream(item)
-                response = append(response, *stream)
+                log.Printf("Error building expression for UpdateStreamById, %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
         }</span>
 
-        <span class="cov8" title="1">return response, nil</span>
+        <span class="cov8" title="1">input := &amp;dynamodb.UpdateItemInput{
+                TableName: aws.String(repo.table),
+                Key: map[string]types.AttributeValue{
+                        "ID": &amp;types.AttributeValueMemberS{Value: stream_id},
+                },
+                UpdateExpression:          expr.Update(),
+                ExpressionAttributeNames:  expr.Names(),
+                ExpressionAttributeValues: expr.Values(),
+                ReturnValues:              types.ReturnValueUpdatedNew,
+        }
+
+        output, err := repo.client.UpdateItem(repo.ctx, input)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error updating stream UpdateStreamById, %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
+        }</span>
+        <span class="cov8" title="1">var updatedStream model.Stream
+        if err := attributevalue.UnmarshalMap(output.Attributes, &amp;updatedStream); err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error unmarshaling UpdateConnectInstancesItem, %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
+        }</span>
+        <span class="cov8" title="1">return &amp;updatedStream, nil</span>
 }
-
-func (repo *StreamDynamoDBRepository) CreateStream(stream *model.Stream) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
-        marshalStream, _ := dynamodbUtils.MarshalMapStream(stream)
-
-    putInput := &amp;dynamodb.PutItemInput{
-        Item:      marshalStream,
-        TableName: aws.String(repo.table),
-    }
-        
-        repo.client.PutItem(repo.ctx, putInput)
-
-        return stream, nil
-}</span>
 
 func (repo *StreamDynamoDBRepository) GetStreamById(stream_id string) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
         input := &amp;dynamodb.GetItemInput{
@@ -264,31 +271,85 @@ func (repo *StreamDynamoDBRepository) GetStreamById(stream_id string) (*model.St
                         "ID": &amp;types.AttributeValueMemberS{Value: stream_id},
                 },
         }
-
         result, err := repo.client.GetItem(repo.ctx, input)
     if err != nil </span><span class="cov0" title="0">{
-        log.Printf("Error in GetItem: %v", err)
-        return nil, appError.NewUnexpectedError("error retrieving stream")
+        log.Printf("Error in GetItem: %s", err.Error())
+        return nil, appError.NewUnexpectedError(err.Error())
     }</span>
-
-        <span class="cov8" title="1">if result.Item == nil </span><span class="cov8" title="1">{
-                log.Printf("GetStreamById: No item found with ID: %s", stream_id)
-                return nil, appError.NewUnexpectedError("GetStreamById: No stream found with ID")
+        <span class="cov8" title="1">if result.Item == nil </span><span class="cov0" title="0">{
+                log.Printf("No item found with on GetStreamById, %s", stream_id)
+                return nil, appError.NewUnexpectedError("No item found with on GetStreamById")
         }</span>
+        <span class="cov8" title="1">var stream model.Stream
+        if err := attributevalue.UnmarshalMap(result.Item, &amp;stream); err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error unmarshaling result: %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
+        }</span>
+        <span class="cov8" title="1">return &amp;stream, nil</span>
+}
 
-        <span class="cov8" title="1">stream, err := dynamodbUtils.UnmarshalStream(result.Item)
-    if err != nil </span><span class="cov0" title="0">{
-        log.Printf("Error unmarshalling stream: %v", err)
-        return nil, appError.NewUnexpectedError("error unmarshalling stream")
+func (repo *StreamDynamoDBRepository) GetAllStream() ([]model.Stream, *appError.Error) <span class="cov8" title="1">{
+        var response []model.Stream
+        input := &amp;dynamodb.ScanInput{
+                TableName: aws.String(repo.table),
+        }
+        output, err := repo.client.Scan(repo.ctx, input)
+        if err != nil </span><span class="cov0" title="0">{
+        log.Printf("Scan error in GetAllStream: %s", err.Error())
+        return nil, appError.NewUnexpectedError(err.Error())
     }</span>
-        
-        <span class="cov8" title="1">return stream, nil</span>
+        <span class="cov8" title="1">for _, item := range output.Items </span><span class="cov8" title="1">{
+                var stream model.Stream
+                err := attributevalue.UnmarshalMap(item, &amp;stream)
+                if err != nil </span><span class="cov0" title="0">{
+                        log.Printf("Error while unmarshaling item from GetAllCompanys, %s", err.Error())
+                        return nil, appError.NewUnexpectedError(err.Error())
+                }</span>
+                <span class="cov8" title="1">response = append(response, stream)</span>
+        }
+        <span class="cov8" title="1">return response, nil</span>
+}
+
+func (repo *StreamDynamoDBRepository) CreateStream(stream *model.Stream) (*model.Stream, *appError.Error) <span class="cov8" title="1">{
+        marshalStream, err := attributevalue.MarshalMap(stream)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error while marshalling CreateStream input, %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
+        }</span>
+    <span class="cov8" title="1">input := &amp;dynamodb.PutItemInput{
+        Item:      marshalStream,
+        TableName: aws.String(repo.table),
+    }
+        _, err = repo.client.PutItem(repo.ctx, input)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error while PutItem on CreateStream: %s", err.Error())
+                return nil, appError.NewUnexpectedError(err.Error())
+        }</span>
+        <span class="cov8" title="1">log.Printf("CreateStream done successfully")
+        return stream, nil</span>
+}
+
+func (repo *StreamDynamoDBRepository) DeleteStream(stream_id string) (*appError.Error) <span class="cov8" title="1">{
+        input := &amp;dynamodb.DeleteItemInput{
+                TableName: aws.String(repo.table),
+                Key: map[string]types.AttributeValue{
+                        "ID": &amp;types.AttributeValueMemberS{Value: stream_id},
+                },
+        }
+
+        _, err := repo.client.DeleteItem(repo.ctx, input)
+        if err != nil </span><span class="cov0" title="0">{
+        log.Printf("Error while DeleteStream, %s", err.Error())
+        return appError.NewUnexpectedError(err.Error())
+    }</span>
+        <span class="cov8" title="1">return nil</span>
 }</pre>
 		
 		<pre class="file" id="file3" style="display: none">package configuration
 
 import (
         "context"
+        "errors"
         "fmt"
         "log"
         "os"
@@ -296,10 +357,6 @@ import (
         "github.com/aws/aws-sdk-go-v2/aws"
         "github.com/aws/aws-sdk-go-v2/service/dynamodb"
         "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-)
-
-var (
-        STREAM_TABLE = os.Getenv("STREAM_TABLE")
 )
 
 func GetDynamoDBStreamTable() string <span class="cov8" title="1">{
@@ -333,7 +390,26 @@ func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context
         return nil
 }</span>
 
-func DeleteLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context, tableName string) error <span class="cov8" title="1">{
+func DescribeStreamTable(ctx context.Context, client *dynamodb.Client, tableName string) (bool, error) <span class="cov8" title="1">{
+        _, err := client.DescribeTable(ctx, &amp;dynamodb.DescribeTableInput{
+                TableName: aws.String(tableName),
+        })
+
+        if err != nil </span><span class="cov0" title="0">{
+                var notFoundErr *types.ResourceNotFoundException
+                if errors.As(err, &amp;notFoundErr) </span><span class="cov0" title="0">{
+                        log.Printf("Table %s does not exist.", tableName)
+                        return false, nil
+                }</span>
+                <span class="cov0" title="0">log.Printf("Unexpected error occurred while describing table %s: %s", tableName, err)
+                return false, err</span>
+        }
+
+        <span class="cov8" title="1">log.Printf("Table %s exists.", tableName)
+        return true, nil</span>
+}
+
+func DeleteLocalDynamoDBStreamTable(ctx context.Context, client *dynamodb.Client, tableName string) error <span class="cov8" title="1">{
     _, err := client.DescribeTable(ctx, &amp;dynamodb.DescribeTableInput{
         TableName: aws.String(tableName),
     })
@@ -362,10 +438,13 @@ import (
 )
 
 func GetDynamoDBAWSClient(ctx context.Context) (*dynamodb.Client, error) <span class="cov8" title="1">{
-        cfg, _ := config.LoadDefaultConfig(ctx)
-        log.Printf("AWS Dynamo Client connected successfully")
-        return dynamodb.NewFromConfig(cfg), nil
-}</span>
+        cfg, err := config.LoadDefaultConfig(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("error while getting client from AWS")
+                return nil, err
+        }</span>
+        <span class="cov8" title="1">return dynamodb.NewFromConfig(cfg), nil</span>
+}
 
 func GetLocalEndpoint(service, region string, options ...interface{}) (aws.Endpoint, error) <span class="cov8" title="1">{
         return aws.Endpoint{URL: "http://localhost:8000"}, nil
@@ -400,16 +479,19 @@ func UnmarshalStream(item map[string]types.AttributeValue) (*model.Stream, error
                 log.Printf("Error unmarshaling result: %s", err)
                 return nil, err
         }</span>
-
     <span class="cov8" title="1">log.Printf("Unmarshalled Stream: %+v", stream)
         return &amp;stream, nil</span>
 }
 
 func MarshalMapStream(stream *model.Stream) (map[string]types.AttributeValue, error) <span class="cov8" title="1">{
-        marshalStream, _ := attributevalue.MarshalMap(stream)
-    log.Printf("Marshalled Stream: %+v", marshalStream)
-        return marshalStream, nil
-}</span>
+        marshalStream, err := attributevalue.MarshalMap(stream)
+        if err != nil </span><span class="cov0" title="0">{
+                log.Printf("Error marshaling result: %s", err)
+                return nil, err
+        }</span>
+    <span class="cov8" title="1">log.Printf("Marshalled Stream: %+v", marshalStream)
+        return marshalStream, nil</span>
+}
 </pre>
 		
 		<pre class="file" id="file6" style="display: none">package error

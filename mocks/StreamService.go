@@ -46,6 +46,26 @@ func (_m *StreamService) CreateStream(_a0 *model.Stream) (*model.Stream, *error.
 	return r0, r1
 }
 
+// DeleteStream provides a mock function with given fields: _a0
+func (_m *StreamService) DeleteStream(_a0 string) *error.Error {
+	ret := _m.Called(_a0)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteStream")
+	}
+
+	var r0 *error.Error
+	if rf, ok := ret.Get(0).(func(string) *error.Error); ok {
+		r0 = rf(_a0)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*error.Error)
+		}
+	}
+
+	return r0
+}
+
 // GetAllStream provides a mock function with given fields:
 func (_m *StreamService) GetAllStream() ([]model.Stream, *error.Error) {
 	ret := _m.Called()
@@ -101,6 +121,38 @@ func (_m *StreamService) GetStreamById(_a0 string) (*model.Stream, *error.Error)
 
 	if rf, ok := ret.Get(1).(func(string) *error.Error); ok {
 		r1 = rf(_a0)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*error.Error)
+		}
+	}
+
+	return r0, r1
+}
+
+// UpdateStreamById provides a mock function with given fields: stream_id, stream
+func (_m *StreamService) UpdateStreamById(stream_id string, stream *model.Stream) (*model.Stream, *error.Error) {
+	ret := _m.Called(stream_id, stream)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateStreamById")
+	}
+
+	var r0 *model.Stream
+	var r1 *error.Error
+	if rf, ok := ret.Get(0).(func(string, *model.Stream) (*model.Stream, *error.Error)); ok {
+		return rf(stream_id, stream)
+	}
+	if rf, ok := ret.Get(0).(func(string, *model.Stream) *model.Stream); ok {
+		r0 = rf(stream_id, stream)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*model.Stream)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, *model.Stream) *error.Error); ok {
+		r1 = rf(stream_id, stream)
 	} else {
 		if ret.Get(1) != nil {
 			r1 = ret.Get(1).(*error.Error)

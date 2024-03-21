@@ -2,6 +2,7 @@ package configuration
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -9,10 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-)
-
-var (
-	STREAM_TABLE = os.Getenv("STREAM_TABLE")
 )
 
 func GetDynamoDBStreamTable() string {
@@ -46,7 +43,26 @@ func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context
 	return nil
 }
 
-func DeleteLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context, tableName string) error {
+func DescribeStreamTable(ctx context.Context, client *dynamodb.Client, tableName string) (bool, error) {
+	_, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{
+		TableName: aws.String(tableName),
+	})
+
+	if err != nil {
+		var notFoundErr *types.ResourceNotFoundException
+		if errors.As(err, &notFoundErr) {
+			log.Printf("Table %s does not exist.", tableName)
+			return false, nil
+		}
+		log.Printf("Unexpected error occurred while describing table %s: %s", tableName, err)
+		return false, err
+	}
+
+	log.Printf("Table %s exists.", tableName)
+	return true, nil
+}
+
+func DeleteLocalDynamoDBStreamTable(ctx context.Context, client *dynamodb.Client, tableName string) error {
     _, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{
         TableName: aws.String(tableName),
     })

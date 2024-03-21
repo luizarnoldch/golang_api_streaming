@@ -2,68 +2,77 @@ package configuration_test
 
 import (
 	"context"
-	"main/src/streams/infrastructure/configuration"
-    dynamodbUtils "main/utils/dynamodb"
+
 	"os"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
+	"main/src/streams/infrastructure/configuration"
+	dynamodbUtils "main/utils/dynamodb"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestGetDynamoDBStreamTableWithEnvSet(t *testing.T) {
-    // Establecer la variable de entorno para la prueba
-    testValue := "MyStreamTable"
-    os.Setenv("STREAM_TABLE", testValue)
-    defer os.Unsetenv("STREAM_TABLE") // Limpiar después de la prueba
-
-    // Llamar a la función y verificar el resultado
-    result := configuration.GetDynamoDBStreamTable()
-    assert.Equal(t, testValue, result, "El valor obtenido debe ser igual al valor de la variable de entorno")
+type DynamoDBConfigSuite struct {
+	suite.Suite
+	client    *dynamodb.Client
+	ctx       context.Context
+	tableName string
 }
 
-func TestGetDynamoDBStreamTableWithoutEnvSet(t *testing.T) {
-    // Asegurarse de que la variable de entorno no esté establecida
-    os.Unsetenv("STREAM_TABLE")
-
-    // Llamar a la función y verificar el resultado
-    result := configuration.GetDynamoDBStreamTable()
-    assert.Equal(t, "Test_Stream_Table", result, "Si STREAM_TABLE no está establecido, se debe devolver 'Test_Stream_Table'")
+func (suite *DynamoDBConfigSuite) SetupSuite() {
+	suite.ctx = context.TODO()
+	var err error
+	suite.client, err = dynamodbUtils.GetLocalDynamoDBClient(suite.ctx)
+	suite.NoError(err)
+	suite.tableName = configuration.GetDynamoDBStreamTable()
 }
 
-func TestCreateLocalDynamoDBStreamTable(t *testing.T) {
-    ctx := context.TODO()
-    client, err := dynamodbUtils.GetLocalDynamoDBClient(ctx)
-    assert.NoError(t, err)
-
-    tableName := configuration.GetDynamoDBStreamTable()
-
-    _ = configuration.DeleteLocalDynamoDBStreamTable(client, ctx, tableName)
-
-    err = configuration.CreateLocalDynamoDBStreamTable(client, ctx, tableName)
-    assert.NoError(t, err)
-
-    describeInput := &dynamodb.DescribeTableInput{
-        TableName: aws.String(tableName),
-    }
-    _, err = client.DescribeTable(ctx, describeInput)
-    assert.NoError(t, err, "La tabla debe existir en DynamoDB local")
-
-    err = configuration.DeleteLocalDynamoDBStreamTable(client, ctx, tableName)
-	assert.NoError(t, err)
+func (suite *DynamoDBConfigSuite) TestGetDynamoDBStreamTableWithEnvSet() {
+	testValue := "MyStreamTable"
+	os.Setenv("STREAM_TABLE", testValue)
+	defer os.Unsetenv("STREAM_TABLE")
+	result := configuration.GetDynamoDBStreamTable()
+	suite.Equal(testValue, result)
 }
 
-func TestDeleteTableNotExists(t *testing.T) {
-    ctx := context.TODO()
-    client, err := dynamodbUtils.GetLocalDynamoDBClient(ctx)
-    assert.NoError(t, err)
+func (suite *DynamoDBConfigSuite) TestGetDynamoDBStreamTableWithoutEnvSet() {
+	os.Unsetenv("STREAM_TABLE")
+	result := configuration.GetDynamoDBStreamTable()
+	suite.Equal("Test_Stream_Table", result)
+}
 
-    tableName := "NonExistentTable"
+func (suite *DynamoDBConfigSuite) TestDeleteLocalDynamoDBStreamTable() {
+	tableName := "New_Stream_Table_Testing"
+	err := configuration.CreateLocalDynamoDBStreamTable(suite.client, suite.ctx, tableName)
+	suite.NoError(err)
 
-    err = configuration.DeleteLocalDynamoDBStreamTable(client, ctx, tableName)
+	exists, err := configuration.DescribeStreamTable(suite.ctx, suite.client, tableName)
+	suite.NoError(err)
+    suite.True(exists, "DescribeStreamTable exists")
 
-    assert.Error(t, err, "Expected an error when trying to delete a non-existent table")
+	err = configuration.DeleteLocalDynamoDBStreamTable(suite.ctx, suite.client, tableName)
+	suite.NoError(err)
+}
 
-    assert.Contains(t, err.Error(), "does not exist, no need to delete")
+func (suite *DynamoDBConfigSuite) TestDeleteTableNotExistsDynamoTable() {
+	tableName := "NonExistentTable"
+	err := configuration.DeleteLocalDynamoDBStreamTable(suite.ctx, suite.client, tableName)
+	suite.Error(err)
+	suite.Contains(err.Error(), "does not exist")
+}
+
+func (suite *DynamoDBConfigSuite) TestCreateLocalDynamoDBStreamTable() {
+	tableName := "Stream_Table_Testing"
+	err := configuration.CreateLocalDynamoDBStreamTable(suite.client, suite.ctx, tableName)
+	suite.NoError(err)
+
+	exists, err := configuration.DescribeStreamTable(suite.ctx, suite.client, tableName)
+	suite.NoError(err)
+    suite.True(exists, "DescribeStreamTable exists")
+
+}
+
+func TestDynamoDBConfigSuite(t *testing.T) {
+	suite.Run(t, new(DynamoDBConfigSuite))
 }

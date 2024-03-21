@@ -36,9 +36,9 @@ func (s Stream) Validate() *appError.Error {
 }
 
 func validateUUID(id string) *appError.Error {
-	uuidRegex := regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$`)
+	uuidRegex := regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 	if !uuidRegex.MatchString(id) {
-		return appError.NewValidationError("Invalid UUID format for ID")
+		return appError.NewValidationError("Invalid ID: The ID must be a valid UUID.")
 	}
 	return nil
 }

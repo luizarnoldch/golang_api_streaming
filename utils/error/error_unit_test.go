@@ -13,11 +13,6 @@ type ErrorSuite struct {
 	suite.Suite
 }
 
-// TestErrorSuite initializes the test suite
-func TestErrorSuite(t *testing.T) {
-	suite.Run(t, new(ErrorSuite))
-}
-
 // TestErrorToString tests the ToString method of the Error type
 func (suite *ErrorSuite) TestErrorToString() {
 	e := error.NewError(http.StatusNotFound, "Resource not found")
@@ -74,4 +69,9 @@ func (suite *ErrorSuite) TestNewValidationError() {
 	suite.NotNil(e, "Error should not be nil")
 	suite.Equal(http.StatusUnprocessableEntity, e.Code, "Error code should be 422")
 	suite.Equal(msg, e.Message, "Error message should match")
+}
+
+// TestErrorSuite initializes the test suite
+func TestErrorSuite(t *testing.T) {
+	suite.Run(t, new(ErrorSuite))
 }

@@ -3,6 +3,7 @@ package dynamodb
 import (
 	"context"
 	"log"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -10,6 +11,10 @@ import (
 )
 
 func GetDynamoDBAWSClient(ctx context.Context) (*dynamodb.Client, error) {
+	if (os.Getenv("ENV") == "dev") {
+		return GetLocalDynamoDBClient(ctx)
+	}
+	
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		log.Printf("error while getting client from AWS")
@@ -19,7 +24,7 @@ func GetDynamoDBAWSClient(ctx context.Context) (*dynamodb.Client, error) {
 }
 
 func GetLocalEndpoint(service, region string, options ...interface{}) (aws.Endpoint, error) {
-	return aws.Endpoint{URL: "http://localhost:8000"}, nil
+	return aws.Endpoint{URL: "http://localhost:8000", SigningRegion: "us-west-1"}, nil
 }
 
 func GetLocalDynamoDBClient(ctx context.Context) (*dynamodb.Client, error) {

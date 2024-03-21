@@ -6,7 +6,7 @@ Contenido...
 
 | Métrica       | Valor         |
 |---------------|---------------|
-| Cobertura     | 92.08%        |
+| Cobertura     | 72.48%        |
 | Otra Métrica  | Otro Valor    |
 
 

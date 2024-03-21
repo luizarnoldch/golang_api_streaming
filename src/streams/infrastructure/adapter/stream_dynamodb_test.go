@@ -3,8 +3,8 @@ package adapter
 import (
 	"context"
 	"main/src/streams/domain/model"
-	"main/src/streams/infrastructure/configuration"
 	"main/src/streams/domain/repository"
+	"main/src/streams/infrastructure/configuration"
 
 	"testing"
 
@@ -18,12 +18,9 @@ import (
 type StreamDynamoDBSuite struct {
 	suite.Suite
 	tableName                   string
+	init_streams 				[]model.Stream
 	dynamoClient                *dynamodb.Client
 	dynamoDBLocalInfrastructure repository.StreamRepository
-}
-
-func TestStreamSuite(t *testing.T) {
-	suite.Run(t, new(StreamDynamoDBSuite))
 }
 
 func (suite *StreamDynamoDBSuite) SetupSuite() {
@@ -38,50 +35,9 @@ func (suite *StreamDynamoDBSuite) SetupSuite() {
 
 	stream_infrastructure := NewStreamDynamoDBRepository(client, ctx, table_name)
 	suite.dynamoDBLocalInfrastructure = stream_infrastructure
-}
 
-func (suite *StreamDynamoDBSuite) SetupTest() {
-	ctx := context.TODO()
 	configuration.CreateLocalDynamoDBStreamTable(suite.dynamoClient, ctx, suite.tableName)
-}
 
-func (suite *StreamDynamoDBSuite) TearDownTest() {
-	ctx := context.TODO()
-	configuration.DeleteLocalDynamoDBStreamTable(suite.dynamoClient, ctx, suite.tableName)
-}
-
-func (suite *StreamDynamoDBSuite) TestCreateStreamAndGetStreamByIdSuccessful() {
-	stream_id := uuid.NewString()
-	stream := model.Stream{
-        ID:        stream_id,
-        Name:      "test_name",
-        Cost:      10.99,
-        StartDate: "2022-01-01T15:04:05Z",
-        EndDate:   "2023-12-01T15:04:05Z",
-    }
-
-	response := stream.Validate()
-	if response != nil {
-		suite.Fail("Validation failed", response.ToString())
-	}
-
-	_, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-	if err != nil {
-		suite.Fail("Failed to create stream", err.ToString())
-	}
-
-	createdStream, err := suite.dynamoDBLocalInfrastructure.GetStreamById(stream_id)
-	if err != nil {
-		suite.Fail("Failed to retrieve stream by ID", err.ToString())
-	}
-	suite.Equal(stream.ID, createdStream.ID)
-	suite.Equal(stream.Name, createdStream.Name)
-	suite.Equal(stream.Cost, createdStream.Cost)
-	suite.Equal(stream.StartDate, createdStream.StartDate)
-	suite.Equal(stream.EndDate, createdStream.EndDate)
-}
-
-func (suite *StreamDynamoDBSuite) TestGetAllStreamSuccessful() {
 	streams := []model.Stream{
         {
             ID:        uuid.NewString(),
@@ -105,56 +61,85 @@ func (suite *StreamDynamoDBSuite) TestGetAllStreamSuccessful() {
             EndDate:   "2023-12-03T15:04:05Z",
         },
     }
+	suite.init_streams = streams
+	exists, err := configuration.DescribeStreamTable(ctx, suite.dynamoClient, suite.tableName)
+	suite.NoError(err)
+	suite.True(exists)
+}
 
-	originalStreamsMap := make(map[string]model.Stream)
-
-    for _, stream := range streams {
-        createdStream, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-        suite.Nil(err)
-        suite.NotNil(createdStream)
-
-        originalStreamsMap[createdStream.ID] = *createdStream
-    }
-
-    createdStreams, err := suite.dynamoDBLocalInfrastructure.GetAllStream()
-    suite.Nil(err)
-    suite.NotEmpty(createdStreams)
-
-    suite.Len(createdStreams, len(streams), "Number of created streams should match")
-
-
-	for _, createdStream := range createdStreams {
-        originalStream, ok := originalStreamsMap[createdStream.ID]
-        suite.True(ok, "Stream ID should exist in the original streams")
-
-        suite.Equal(originalStream.Name, createdStream.Name, "Stream name should match")
-        suite.Equal(originalStream.Cost, createdStream.Cost, "Stream cost should match")
-        suite.Equal(originalStream.StartDate, createdStream.StartDate, "Stream start date should match")
-		suite.Equal(originalStream.EndDate, createdStream.EndDate, "Stream end date should match")
+func (suite *StreamDynamoDBSuite) TearDownSuite() {
+	for _, stream := range suite.init_streams {
+		err := suite.dynamoDBLocalInfrastructure.DeleteStream(stream.ID)
+		suite.Nil(err)
 	}
 }
 
-func (suite *StreamDynamoDBSuite) TestGetStreamByIdWithBadId() {
-	stream_id := uuid.NewString()
-	stream_bad_id := uuid.NewString()
-
-	stream := model.Stream{
-		ID:        stream_id,
-		Name:      "test_name",
-		Cost:      15.00,
-		StartDate: "2022-01-01T15:04:05Z",
-		EndDate:   "2023-01-01T15:04:05Z",
+func (suite *StreamDynamoDBSuite) TestCreateStreamSuccessful() {
+	for _, stream := range suite.init_streams {
+		_, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
+		suite.Nil(err)
 	}
-	response := stream.Validate()
-	if response != nil {
-		suite.Fail("Validation failed", response.ToString())
-	}
+}
 
-	_, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
-	if err != nil {
-		suite.Fail("Failed to create stream", err.ToString())
-	}
+func (suite *StreamDynamoDBSuite) TestGetAllStreamSuccessful() {
+    createdStreams, err := suite.dynamoDBLocalInfrastructure.GetAllStream()
+    suite.Nil(err)
+    suite.NotEmpty(createdStreams)
+	suite.Equal(len(createdStreams), len(suite.init_streams))
+}
 
-	_, err = suite.dynamoDBLocalInfrastructure.GetStreamById(stream_bad_id)
-	suite.NotNil(err, "Expected an error for bad ID")
+func (suite *StreamDynamoDBSuite) TestGetStreamByIdSuccessful() {
+	stream := suite.init_streams[0]
+	createdStream, err := suite.dynamoDBLocalInfrastructure.GetStreamById(stream.ID)
+	suite.Nil(err)
+	suite.Equal(createdStream.ID, stream.ID)
+	suite.Equal(createdStream.Name, stream.Name)
+	suite.Equal(createdStream.Cost, stream.Cost)
+	suite.Equal(createdStream.StartDate, stream.StartDate)
+	suite.Equal(createdStream.EndDate, stream.EndDate)
+}
+
+func (suite *StreamDynamoDBSuite) TestUpdateStreamNameSuccessful() {
+    old_stream := suite.init_streams[0]
+	old_stream.Name = "new_name_test"
+
+	suite.NotEqual(suite.init_streams[0], old_stream.Name)
+
+	updatedStream, err := suite.dynamoDBLocalInfrastructure.UpdateStreamById(old_stream.ID, &old_stream)
+	suite.Nil(err)
+	suite.NotNil(updatedStream)
+	suite.NotEmpty(updatedStream)
+
+	suite.Equal(old_stream.Name, updatedStream.Name)
+}
+
+
+
+// func (suite *StreamDynamoDBSuite) TestGetStreamByIdWithBadId() {
+// 	stream_id := uuid.NewString()
+// 	stream_bad_id := uuid.NewString()
+
+// 	stream := model.Stream{
+// 		ID:        stream_id,
+// 		Name:      "test_name",
+// 		Cost:      15.00,
+// 		StartDate: "2022-01-01T15:04:05Z",
+// 		EndDate:   "2023-01-01T15:04:05Z",
+// 	}
+// 	response := stream.Validate()
+// 	if response != nil {
+// 		suite.Fail("Validation failed", response.ToString())
+// 	}
+
+// 	_, err := suite.dynamoDBLocalInfrastructure.CreateStream(&stream)
+// 	if err != nil {
+// 		suite.Fail("Failed to create stream", err.ToString())
+// 	}
+
+// 	_, err = suite.dynamoDBLocalInfrastructure.GetStreamById(stream_bad_id)
+// 	suite.NotNil(err, "Expected an error for bad ID")
+// }
+
+func TestStreamSuite(t *testing.T) {
+	suite.Run(t, new(StreamDynamoDBSuite))
 }

@@ -1,41 +1,46 @@
-package dynamodb
+package dynamodb_test
 
 import (
 	"context"
 	"testing"
-	"github.com/stretchr/testify/assert"
+
+	dynamodb_util "main/utils/dynamodb"
+
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestGetDynamoDBAWSClient(t *testing.T) {
-	ctx := context.TODO()
-	client, err := GetDynamoDBAWSClient(ctx)
-	assert.NoError(t, err)
-	assert.IsType(t, &dynamodb.Client{}, client)
+type DynamoDBUtilSuite struct {
+	suite.Suite
+	client *dynamodb.Client
+	ctx    context.Context
 }
 
-func TestGetDynamoDBAWSClientError(t *testing.T) {
-	ctx := context.TODO()
-	client, err := GetDynamoDBAWSClient(ctx)
-	assert.NoError(t, err)
-	assert.IsType(t, &dynamodb.Client{}, client)
+func (suite *DynamoDBUtilSuite) SetupSuite() {
+	suite.ctx = context.TODO()
+	var err error
+	suite.client, err = dynamodb_util.GetLocalDynamoDBClient(suite.ctx)
+	suite.NoError(err)
 }
 
-func TestGetLocalDynamoDBClient(t *testing.T) {
-	ctx := context.TODO()
-	client, err := GetLocalDynamoDBClient(ctx)
-	assert.NoError(t, err)
-	assert.IsType(t, &dynamodb.Client{}, client)
-	// Additional checks can be added to ensure that the client is configured for local use.
+func (suite *DynamoDBUtilSuite) TestGetDynamoDBAWSClient() {
+	client, err := dynamodb_util.GetDynamoDBAWSClient(suite.ctx)
+	suite.NoError(err)
+	suite.IsType(&dynamodb.Client{}, client)
 }
 
-func TestGetLocalEndpoint(t *testing.T) {
-	// Call the function
-	endpoint, err := GetLocalEndpoint("dynamodb", "us-west-2")
+func (suite *DynamoDBUtilSuite) TestGetLocalDynamoDBClient() {
+	client, err := dynamodb_util.GetLocalDynamoDBClient(suite.ctx)
+	suite.NoError(err)
+	suite.IsType(&dynamodb.Client{}, client)
+}
 
-	// Check for errors
-	assert.NoError(t, err, "getLocalEndpoint should not return an error")
+func (suite *DynamoDBUtilSuite) TestGetLocalEndpoint() {
+	endpoint, err := dynamodb_util.GetLocalEndpoint("dynamodb", "us-west-1")
+	suite.NoError(err)
+	suite.Equal("http://localhost:8000", endpoint.URL, "Endpoint URL should be 'http://localhost:8000'")
+}
 
-	// Check if the returned endpoint is as expected
-	assert.Equal(t, "http://localhost:8000", endpoint.URL, "Endpoint URL should be 'http://localhost:8000'")
+func TestDynamoDBUtilSuite(t *testing.T) {
+	suite.Run(t, new(DynamoDBUtilSuite))
 }

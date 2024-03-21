@@ -6,52 +6,76 @@ import (
 	"main/src/streams/application/service"
 	"main/src/streams/domain/model"
 	"main/src/streams/infrastructure/adapter"
-	"main/src/streams/infrastructure/configuration"
 	dynamodbUtils "main/utils/dynamodb"
 	appError "main/utils/error"
 )
 
-func CreateStream(ctx context.Context, req *model.Stream) (*model.Stream, *appError.Error) {
-	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(ctx)
-	if err != nil {
-		log.Printf("Failed to load DynamoDB from CreateStream API Function")
-		return &model.Stream{}, appError.NewUnexpectedError("Failed to load DynamoDB from CreateStream API Function")
-	}
-
-	dynamoDBtable := configuration.GetDynamoDBStreamTable()
-
-	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, ctx, dynamoDBtable)
-	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
-
-	return StreamService.CreateStream(req)
+type StreamUseCases struct {
+	Ctx       context.Context
+	TableName string
 }
 
-func GetAllStream(ctx context.Context) ([]model.Stream, *appError.Error) {
-	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(ctx)
+func (stream *StreamUseCases) UpdateStreamById(stream_id string, req *model.Stream) (*model.Stream, *appError.Error) {
+	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(stream.Ctx)
 	if err != nil {
 		log.Printf("Failed to load DynamoDB from GetAllStream API Function")
-		return []model.Stream{}, appError.NewUnexpectedError("Failed to load DynamoDB from GetAllStream API Function")
+		return nil, appError.NewUnexpectedError(err.Error())
 	}
 
-	dynamoDBtable := configuration.GetDynamoDBStreamTable()
+	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, stream.Ctx, stream.TableName)
+	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
 
-	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, ctx, dynamoDBtable)
+	return StreamService.UpdateStreamById(stream_id, req)
+}
+
+func (stream *StreamUseCases) GetItemById(stream_id string) (*model.Stream, *appError.Error) {
+	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(stream.Ctx)
+	if err != nil {
+		log.Printf("Failed to load DynamoDB from GetAllStream API Function")
+		return nil, appError.NewUnexpectedError(err.Error())
+	}
+
+	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, stream.Ctx, stream.TableName)
+	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
+
+	return StreamService.GetStreamById(stream_id)
+}
+
+func (stream *StreamUseCases) GetAllStream() ([]model.Stream, *appError.Error) {
+	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(stream.Ctx)
+	if err != nil {
+		log.Printf("Failed to load DynamoDB from GetAllStream API Function")
+		return nil, appError.NewUnexpectedError(err.Error())
+	}
+
+	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, stream.Ctx, stream.TableName)
 	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
 
 	return StreamService.GetAllStream()
 }
 
-func GetItemById(ctx context.Context, stream_id string) (*model.Stream, *appError.Error) {
-	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(ctx)
+func (stream *StreamUseCases) CreateStream(req *model.Stream) (*model.Stream, *appError.Error) {
+	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(stream.Ctx)
 	if err != nil {
-		log.Printf("Failed to load DynamoDB from GetAllStream API Function")
-		return &model.Stream{}, appError.NewUnexpectedError("Failed to load DynamoDB from GetAllStream API Function")
+		log.Printf("Failed to load DynamoDB from CreateStream API Function")
+		return nil, appError.NewUnexpectedError("Failed to load DynamoDB from CreateStream API Function")
 	}
 
-	dynamoDBtable := configuration.GetDynamoDBStreamTable()
-
-	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, ctx, dynamoDBtable)
+	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, stream.Ctx, stream.TableName)
 	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
 
-	return StreamService.GetStreamById(stream_id)
+	return StreamService.CreateStream(req)
+}
+
+func (stream *StreamUseCases) DeleteStream(stream_id string) *appError.Error {
+	dynamoDBClient, err := dynamodbUtils.GetDynamoDBAWSClient(stream.Ctx)
+	if err != nil {
+		log.Printf("Failed to load DynamoDB from CreateStream API Function")
+		return appError.NewUnexpectedError(err.Error())
+	}
+
+	StreamInfrastructure := adapter.NewStreamDynamoDBRepository(dynamoDBClient, stream.Ctx, stream.TableName)
+	StreamService := service.NewStreamDynamoDBService(StreamInfrastructure)
+
+	return StreamService.DeleteStream(stream_id)
 }

@@ -10,22 +10,25 @@ Parameters:
   Stage:
     Type: String
     Description: Stage of API GATEWAY
-    Default: Prod
+    Default: dev
+
 Resources:
   StreamTableKMSKey:
-  Type: 'AWS::KMS::Key'
-  Properties:
-    Description: 'KMS Key for encrypting the StreamTable'
-    KeyPolicy:
-      Version: '2012-10-17'
-      Id: key-default-1
-      Statement:
-        - Sid: Enable IAM User Permissions
-          Effect: Allow
-          Principal:
-            AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
-          Action: 'kms:*'
-          Resource: '*'
+    Type: 'AWS::KMS::Key'
+    Properties:
+      Description: 'KMS Key for encrypting the StreamTable'
+      EnableKeyRotation: true
+      KeyPolicy:
+        Version: '2012-10-17'
+        Id: key-default-1
+        Statement:
+          - Sid: Enable IAM User Permissions
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${AWS::AccountId}:root'
+            Action: 'kms:*'
+            Resource: '*'
+
   StreamTable:
     Type: 'AWS::DynamoDB::Table'
     Properties:
@@ -60,6 +63,79 @@ Resources:
         AllowHeaders: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
         AllowMethods: "'OPTIONS,DELETE,GET,HEAD,POST,PUT'"
         AllowOrigin: "'*'"
+
+  HolaMundoFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/hola_mundo.zip
+      FunctionName: !Sub "${ProjectName}-hola_mundo"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StreamTable
+      Events:
+        HolaMundo:
+          Type: Api
+          Properties:
+            Path: /
+            Method: get
+            RestApiId: !Ref StreamAPIGateway
+
+  UpdateStreamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/update_stream.zip
+      FunctionName: !Sub "${ProjectName}-update_stream"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StreamTable
+      Events:
+        UpdateStream:
+          Type: Api
+          Properties:
+            Path: /streams/{stream_id}
+            Method: put
+            RestApiId: !Ref StreamAPIGateway
+
+  GetSreamByIDFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/get_item_by_id.zip
+      FunctionName: !Sub "${ProjectName}-get_item_by_id"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StreamTable
+      Events:
+        GetStreamByID:
+          Type: Api
+          Properties:
+            Path: /streams/{stream_id}
+            Method: get
+            RestApiId: !Ref StreamAPIGateway
+
   GetAllSreamFunction:
     Type: AWS::Serverless::Function
     Metadata:
@@ -72,6 +148,7 @@ Resources:
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
@@ -79,13 +156,89 @@ Resources:
         GetAllStream:
           Type: Api
           Properties:
-            Path: /stream
+            Path: /streams
             Method: get
             RestApiId: !Ref StreamAPIGateway
+  
+  DeleteSreamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/delete_stream.zip
+      FunctionName: !Sub "${ProjectName}-delete_stream"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StreamTable
+      Events:
+        DeleteStream:
+          Type: Api
+          Properties:
+            Path: /streams/{stream_id}
+            Method: delete
+            RestApiId: !Ref StreamAPIGateway
+  
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: "Allow"
+            Principal:
+              Service: [lambda.amazonaws.com]
+            Action: ["sts:AssumeRole"]
+      Policies:
+        - PolicyName: "LambdaDynamoDBPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "dynamodb:GetItem"
+                  - "dynamodb:PutItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:DeleteItem"
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                Resource: "arn:aws:dynamodb:us-east-1:681318508133:table/StreamTable"
+
+  CreateSreamFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/create_stream.zip
+      FunctionName: !Sub "${ProjectName}-create_stream"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          STREAM_TABLE: !Ref StreamTable
+          ENV: !Ref Stage
+      Role: !GetAtt LambdaExecutionRole.Arn
+      # Policies:
+      #   - DynamoDBCrudPolicy:
+      #       TableName: !Ref StreamTable
+      Events:
+        CreateStream:
+          Type: Api
+          Properties:
+            Path: /streams
+            Method: post
+            RestApiId: !Ref StreamAPIGateway
+
 Outputs:
   StreamTable:
     Description: Stream Accounts DynamoDB Table
     Value: !Ref StreamTable
+
   StreamAPIGateway:
     Description: "API Gateway endpoint URL para documentos"
     Value: !Sub "https://${StreamAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"

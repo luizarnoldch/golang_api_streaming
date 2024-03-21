@@ -11,13 +11,9 @@ type StreamSuite struct {
 	suite.Suite
 }
 
-func TestStreamSuite(t *testing.T) {
-	suite.Run(t, new(StreamSuite))
-}
-
 func (suite *StreamSuite) TestStreamValidateSuccessful() {
 	stream := model.Stream{
-		ID:        "123e4567-e89b-12d3-a456-426614174000",
+		ID:        "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name:      "Valid Name",
 		Cost:      15.99,
 		StartDate: "2022-01-01T15:04:05Z",
@@ -33,12 +29,12 @@ func (suite *StreamSuite) TestStreamValidateInvalidID() {
 	}
 	err := stream.Validate()
 	suite.NotNil(err)
-	suite.Equal(err.Message, "Invalid UUID format for ID")
+	suite.Equal(err.Message, "Invalid ID: The ID must be a valid UUID.")
 }
 
 func (suite *StreamSuite) TestStreamValidateInvalidName() {
 	stream := model.Stream{
-		ID:   "123e4567-e89b-12d3-a456-426614174000",
+		ID:   "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name: "N",
 	}
 	err := stream.Validate()
@@ -48,7 +44,7 @@ func (suite *StreamSuite) TestStreamValidateInvalidName() {
 
 func (suite *StreamSuite) TestStreamValidateInvalidCostNegative() {
 	stream := model.Stream{
-		ID:   "123e4567-e89b-12d3-a456-426614174000",
+		ID:   "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name: "Name",
 		Cost: -10.00,
 	}
@@ -59,7 +55,7 @@ func (suite *StreamSuite) TestStreamValidateInvalidCostNegative() {
 
 func (suite *StreamSuite) TestStreamValidateInvalidCostMoreThan2Decimals() {
 	stream := model.Stream{
-		ID:   "123e4567-e89b-12d3-a456-426614174000",
+		ID:   "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name: "Name",
 		Cost: 10.123,
 	}
@@ -71,7 +67,7 @@ func (suite *StreamSuite) TestStreamValidateInvalidCostMoreThan2Decimals() {
 func (suite *StreamSuite) TestStreamValidateInvalidStartDate() {
 	// Test with invalid start date
 	stream := model.Stream{
-		ID:        "123e4567-e89b-12d3-a456-426614174000",
+		ID:        "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name: "Name",
 		Cost: 10.00,
 		StartDate: "invalid-date",
@@ -84,7 +80,7 @@ func (suite *StreamSuite) TestStreamValidateInvalidStartDate() {
 func (suite *StreamSuite) TestStreamValidateInvalidEndDate() {
 	// Test with invalid end date
 	stream := model.Stream{
-		ID:      "123e4567-e89b-12d3-a456-426614174000",
+		ID:      "e814305d-7328-4b5f-a018-ec2caed2baf8",
 		Name: "Name",
 		Cost: 10.00,
 		StartDate: "2006-01-02T15:04:05.99Z",
@@ -93,4 +89,8 @@ func (suite *StreamSuite) TestStreamValidateInvalidEndDate() {
 	err := stream.Validate()
 	suite.NotNil(err)
 	suite.Equal(err.Message, "Invalid date format, must be RFC3339 or RFC3339 with microseconds")
+}
+
+func TestStreamSuite(t *testing.T) {
+	suite.Run(t, new(StreamSuite))
 }
