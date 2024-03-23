@@ -33,10 +33,10 @@ func (suite *StreamDynamoDBSuite) SetupSuite() {
 	suite.Equal("Test_Stream_Table", table_name)
 	suite.tableName = table_name
 
-	stream_infrastructure := NewStreamDynamoDBRepository(client, ctx, table_name)
+	stream_infrastructure := NewStreamDynamoDBRepository(ctx, client,table_name)
 	suite.dynamoDBLocalInfrastructure = stream_infrastructure
 
-	configuration.CreateLocalDynamoDBStreamTable(suite.dynamoClient, ctx, suite.tableName)
+	configuration.CreateLocalDynamoDBStreamTable(ctx, suite.dynamoClient, suite.tableName)
 
 	streams := []model.Stream{
         {

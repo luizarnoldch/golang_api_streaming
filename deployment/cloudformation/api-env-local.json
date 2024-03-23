@@ -4,27 +4,27 @@
         "Stage": "dev"
     },
     "UpdateStreamFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     },
     "GetStreamByIDFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     },
     "GetAllStreamFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     },
     "DeleteStreamFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     },
     "CreateStreamFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     },
     "HolaMundoFunction": {
-        "STREAM_TABLE": "StreamTable",
+        "STREAM_TABLE": "MorseCodeTest-StreamTable",
         "ENV": "dev"
     }
 }

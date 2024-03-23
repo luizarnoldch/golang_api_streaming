@@ -1,6 +1,6 @@
 TEMPLATE_FILE := deployment/cloudformation/main.yml
 ENV_FILE := deployment/cloudformation/api-env-local.json
-STACK_NAME := streaming-api
+STACK_NAME := MoseTestAPI
 
 DYNAMO-LOCAL := deployment/docker/dynamo-local.yml
 
@@ -22,13 +22,20 @@ coverage:
 	go tool cover -html=coverage-report.out -o coverage-report.html
 	go tool cover -func=coverage-report.out
 	go run ./utils/coverage/coverage_generator.go
+# api:
+# 	make dynamo-init
+# 	sam local start-api -t $(TEMPLATE_FILE) --env-vars $(ENV_FILE)
 api:
-	sam local start-api -t $(TEMPLATE_FILE) --env-vars $(ENV_FILE)
+	make dynamo-up
+	make dynamo-init
+	go run main_fiber.go
+dynamo-init:
+	go run ./scripts/init_dynamodb_local.go
 f_test:
 	chmod +x -R ./scripts/
 	./scripts/func_test.sh
 deploy:
-	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities CAPABILITY_IAM --resolve-s3
+	sam deploy --template-file $(TEMPLATE_FILE) --stack-name $(STACK_NAME) --capabilities CAPABILITY_IAM --resolve-s3 --parameter-overrides 'ProjectName="MorseTest"'
 destroy:
 	aws cloudformation delete-stack --stack-name $(STACK_NAME)
 dynamo-up:

@@ -13,7 +13,7 @@ Parameters:
     Default: dev
 
 Resources:
-  StreamTableKMSKey:
+  GlobalTableKMSKey:
     Type: 'AWS::KMS::Key'
     Properties:
       Description: 'KMS Key for encrypting the StreamTable'
@@ -34,10 +34,10 @@ Resources:
     Properties:
       TableName: !Sub "${ProjectName}-StreamTable"
       AttributeDefinitions:
-        - AttributeName: stream_id
+        - AttributeName: ID
           AttributeType: S
       KeySchema:
-        - AttributeName: stream_id
+        - AttributeName: ID
           KeyType: HASH
       ProvisionedThroughput:
         ReadCapacityUnits: 5
@@ -47,8 +47,7 @@ Resources:
       SSESpecification:
         SSEEnabled: true
         SSEType: KMS
-        KMSMasterKeyId: !Ref StreamTableKMSKey
-
+        KMSMasterKeyId: !Ref GlobalTableKMSKey
   StreamAPIGateway:
     Type: AWS::Serverless::Api
     Properties:
@@ -73,6 +72,7 @@ Resources:
       FunctionName: !Sub "${ProjectName}-hola_mundo"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
@@ -80,6 +80,18 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         HolaMundo:
           Type: Api
@@ -97,6 +109,7 @@ Resources:
       FunctionName: !Sub "${ProjectName}-update_stream"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
@@ -104,6 +117,18 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         UpdateStream:
           Type: Api
@@ -121,6 +146,7 @@ Resources:
       FunctionName: !Sub "${ProjectName}-get_item_by_id"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
@@ -128,6 +154,18 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         GetStreamByID:
           Type: Api
@@ -145,6 +183,7 @@ Resources:
       FunctionName: !Sub "${ProjectName}-get_all_stream"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
@@ -152,6 +191,18 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         GetAllStream:
           Type: Api
@@ -169,6 +220,7 @@ Resources:
       FunctionName: !Sub "${ProjectName}-delete_stream"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
@@ -176,6 +228,18 @@ Resources:
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         DeleteStream:
           Type: Api
@@ -183,31 +247,6 @@ Resources:
             Path: /streams/{stream_id}
             Method: delete
             RestApiId: !Ref StreamAPIGateway
-  
-  LambdaExecutionRole:
-    Type: AWS::IAM::Role
-    Properties:
-      AssumeRolePolicyDocument:
-        Version: "2012-10-17"
-        Statement:
-          - Effect: "Allow"
-            Principal:
-              Service: [lambda.amazonaws.com]
-            Action: ["sts:AssumeRole"]
-      Policies:
-        - PolicyName: "LambdaDynamoDBPolicy"
-          PolicyDocument:
-            Version: "2012-10-17"
-            Statement:
-              - Effect: "Allow"
-                Action:
-                  - "dynamodb:GetItem"
-                  - "dynamodb:PutItem"
-                  - "dynamodb:UpdateItem"
-                  - "dynamodb:DeleteItem"
-                  - "dynamodb:Scan"
-                  - "dynamodb:Query"
-                Resource: "arn:aws:dynamodb:us-east-1:681318508133:table/StreamTable"
 
   CreateSreamFunction:
     Type: AWS::Serverless::Function
@@ -218,14 +257,26 @@ Resources:
       FunctionName: !Sub "${ProjectName}-create_stream"
       Handler: bootstrap
       Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
       Environment:
         Variables:
           STREAM_TABLE: !Ref StreamTable
           ENV: !Ref Stage
-      Role: !GetAtt LambdaExecutionRole.Arn
-      # Policies:
-      #   - DynamoDBCrudPolicy:
-      #       TableName: !Ref StreamTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref StreamTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
       Events:
         CreateStream:
           Type: Api

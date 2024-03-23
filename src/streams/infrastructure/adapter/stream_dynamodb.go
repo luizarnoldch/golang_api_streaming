@@ -20,7 +20,7 @@ type StreamDynamoDBRepository struct {
 	table  string
 }
 
-func NewStreamDynamoDBRepository(client *dynamodb.Client, ctx context.Context, table string) repository.StreamRepository {
+func NewStreamDynamoDBRepository(ctx context.Context, client *dynamodb.Client, table string) repository.StreamRepository {
 	return &StreamDynamoDBRepository{
 		client: client,
 		ctx:    ctx,

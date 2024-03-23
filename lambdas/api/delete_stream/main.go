@@ -34,7 +34,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	message := "Deleted stream with id: " + id_stream
 
-	return apigateway.APIGatewayDataResponse(http.StatusOK, message), nil
+	return apigateway.APIGatewayMessageResponse(http.StatusOK, message), nil
 }
 
 func main() {

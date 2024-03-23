@@ -44,7 +44,7 @@ func (suite *DynamoDBConfigSuite) TestGetDynamoDBStreamTableWithoutEnvSet() {
 
 func (suite *DynamoDBConfigSuite) TestDeleteLocalDynamoDBStreamTable() {
 	tableName := "New_Stream_Table_Testing"
-	err := configuration.CreateLocalDynamoDBStreamTable(suite.client, suite.ctx, tableName)
+	err := configuration.CreateLocalDynamoDBStreamTable(suite.ctx, suite.client, tableName)
 	suite.NoError(err)
 
 	exists, err := configuration.DescribeStreamTable(suite.ctx, suite.client, tableName)
@@ -64,7 +64,7 @@ func (suite *DynamoDBConfigSuite) TestDeleteTableNotExistsDynamoTable() {
 
 func (suite *DynamoDBConfigSuite) TestCreateLocalDynamoDBStreamTable() {
 	tableName := "Stream_Table_Testing"
-	err := configuration.CreateLocalDynamoDBStreamTable(suite.client, suite.ctx, tableName)
+	err := configuration.CreateLocalDynamoDBStreamTable(suite.ctx, suite.client, tableName)
 	suite.NoError(err)
 
 	exists, err := configuration.DescribeStreamTable(suite.ctx, suite.client, tableName)

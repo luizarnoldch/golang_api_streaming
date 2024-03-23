@@ -22,7 +22,7 @@ func GetDynamoDBStreamTable() string {
 	return streamTable
 }
 
-func CreateLocalDynamoDBStreamTable(client *dynamodb.Client, ctx context.Context, tableName string) error {
+func CreateLocalDynamoDBStreamTable(ctx context.Context, client *dynamodb.Client, tableName string) error {
 	client.CreateTable(ctx, &dynamodb.CreateTableInput{
 		AttributeDefinitions: []types.AttributeDefinition{
 			{
