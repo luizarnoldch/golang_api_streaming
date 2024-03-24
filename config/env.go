@@ -42,6 +42,9 @@ func LoadConfig(filePath string) (*CONFIG, error) {
 				STREAM_DYNAMODB: STREAM_DYNAMODB{
 					TABLE_NAME: os.Getenv("STREAM_TABLE"),
 				},
+				USER_DYNAMODB: USER_DYNAMODB{
+					TABLE_NAME: os.Getenv("USER_TABLE"),
+				},
 			},
 		},
 		ENV: os.Getenv("ENV"),

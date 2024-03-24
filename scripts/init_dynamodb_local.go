@@ -4,7 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"main/src/streams/infrastructure/configuration"
+	stream_configuration "main/src/streams/infrastructure/configuration"
+    user_configuration "main/src/users/infrastructure/configuration"
 	dynamodbUtils "main/utils/dynamodb"
 	"time"
 
@@ -60,17 +61,31 @@ func main() {
         log.Fatalf("Failed to create DynamoDB client: %v", err)
     }
 
-    tableName := "StreamTable"
-    tableExists, err := configuration.DescribeStreamTable(ctx, dynamoClient, tableName)
+    streamTableName := "StreamTable"
+    streamTableExists, err := stream_configuration.DescribeStreamTable(ctx, dynamoClient, streamTableName)
     if err != nil {
         log.Fatalf("Error describing table: %v", err)
     }
 
-    if !tableExists {
-        if err := CreateInitLocalDynamoDBStreamTable(ctx, dynamoClient, tableName); err != nil {
+    if !streamTableExists {
+        if err := CreateInitLocalDynamoDBStreamTable(ctx, dynamoClient, streamTableName); err != nil {
             log.Fatalf("Failed to create table: %v", err)
         }
     } else {
-        log.Printf("Table %s already exists", tableName)
+        log.Printf("Table %s already exists", streamTableName)
+    }
+
+    userTableName := "UserTable"
+    userTableExists, err := user_configuration.DescribeUserTable(ctx, dynamoClient, userTableName)
+    if err != nil {
+        log.Fatalf("Error describing table: %v", err)
+    }
+
+    if !userTableExists {
+        if err := CreateInitLocalDynamoDBStreamTable(ctx, dynamoClient, userTableName); err != nil {
+            log.Fatalf("Failed to create table: %v", err)
+        }
+    } else {
+        log.Printf("Table %s already exists", userTableName)
     }
 }

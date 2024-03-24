@@ -13,6 +13,13 @@ Parameters:
     Default: dev
 
 Resources:
+
+  # *** Cognito ***
+
+  
+
+  # *** API ***
+
   GlobalTableKMSKey:
     Type: 'AWS::KMS::Key'
     Properties:
@@ -48,7 +55,28 @@ Resources:
         SSEEnabled: true
         SSEType: KMS
         KMSMasterKeyId: !Ref GlobalTableKMSKey
-  StreamAPIGateway:
+
+  UserTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      TableName: !Sub "${ProjectName}-UserTable"
+      AttributeDefinitions:
+        - AttributeName: ID
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ID
+          KeyType: HASH
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+        SSEType: KMS
+        KMSMasterKeyId: !Ref GlobalTableKMSKey
+
+  CentralAPIGateway:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub "stream-apigateway-${Stage}"
@@ -98,7 +126,7 @@ Resources:
           Properties:
             Path: /
             Method: get
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
 
   UpdateStreamFunction:
     Type: AWS::Serverless::Function
@@ -135,7 +163,7 @@ Resources:
           Properties:
             Path: /streams/{stream_id}
             Method: put
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
 
   GetSreamByIDFunction:
     Type: AWS::Serverless::Function
@@ -172,7 +200,7 @@ Resources:
           Properties:
             Path: /streams/{stream_id}
             Method: get
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
 
   GetAllSreamFunction:
     Type: AWS::Serverless::Function
@@ -209,7 +237,7 @@ Resources:
           Properties:
             Path: /streams
             Method: get
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
   
   DeleteSreamFunction:
     Type: AWS::Serverless::Function
@@ -246,7 +274,7 @@ Resources:
           Properties:
             Path: /streams/{stream_id}
             Method: delete
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
 
   CreateSreamFunction:
     Type: AWS::Serverless::Function
@@ -283,13 +311,202 @@ Resources:
           Properties:
             Path: /streams
             Method: post
-            RestApiId: !Ref StreamAPIGateway
+            RestApiId: !Ref CentralAPIGateway
+  
+  UpdateUserFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/update_user.zip
+      FunctionName: !Sub "${ProjectName}-update_user"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
+      Events:
+        UpdateStream:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: put
+            RestApiId: !Ref CentralAPIGateway
+
+  GetUserByIDFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/get_user_by_id.zip
+      FunctionName: !Sub "${ProjectName}-get_user_by_id"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
+      Events:
+        GetStreamByID:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: get
+            RestApiId: !Ref CentralAPIGateway
+
+  GetAllUserFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/get_all_user.zip
+      FunctionName: !Sub "${ProjectName}-get_all_user"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
+      Events:
+        GetAllStream:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: get
+            RestApiId: !Ref CentralAPIGateway
+  
+  DeleteUserFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/delete_user.zip
+      FunctionName: !Sub "${ProjectName}-delete_user"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
+      Events:
+        DeleteStream:
+          Type: Api
+          Properties:
+            Path: /users/{user_id}
+            Method: delete
+            RestApiId: !Ref CentralAPIGateway
+
+  CreateUserFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/create_user.zip
+      FunctionName: !Sub "${ProjectName}-create_user"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Timeout: 10 # Tiempo en segundos
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
+      Events:
+        CreateStream:
+          Type: Api
+          Properties:
+            Path: /users
+            Method: post
+            RestApiId: !Ref CentralAPIGateway
 
 Outputs:
   StreamTable:
     Description: Stream Accounts DynamoDB Table
     Value: !Ref StreamTable
+  
+  UserTable:
+    Description: User Accounts DynamoDB Table
+    Value: !Ref UserTable
 
-  StreamAPIGateway:
+  CentralAPIGateway:
     Description: "API Gateway endpoint URL para documentos"
-    Value: !Sub "https://${StreamAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+    Value: !Sub "https://${CentralAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"

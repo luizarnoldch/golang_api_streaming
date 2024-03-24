@@ -4,8 +4,13 @@ import (
 	"context"
 	"fmt"
 	"main/config"
-	"main/src/streams/application/service"
-	"main/src/streams/infrastructure/adapter"
+
+	stream_service "main/src/streams/application/service"
+	stream_adapter "main/src/streams/infrastructure/adapter"
+
+	user_service "main/src/users/application/service"
+	user_adapter "main/src/users/infrastructure/adapter"
+
 	dynamodbUtils "main/utils/dynamodb"
 
 	"github.com/gofiber/fiber/v2"
@@ -27,15 +32,21 @@ func Start() {
 		log.Fatal("Error while getting local dynamodb client %s", err)
 	}
 
-	stream_repository := adapter.NewStreamDynamoDBRepository(
+	stream_repository := stream_adapter.NewStreamDynamoDBRepository(
 		ctx,
 		localDynamoClient,
 		config.MICRO.DB.STREAM_DYNAMODB.TABLE_NAME,
 	)
-
-	stream_application := service.NewStreamDynamoDBService(stream_repository)
-
+	stream_application := stream_service.NewStreamDynamoDBService(stream_repository)
 	stream_controller := StreamCotroller{stream_application}
+
+	user_repository := user_adapter.NewUserDynamoDBRepository(
+		ctx,
+		localDynamoClient,
+		config.MICRO.DB.USER_DYNAMODB.TABLE_NAME,
+	)
+	user_application := user_service.NewUserService(user_repository)
+	user_controller := UserCotroller{user_application}
 
 	app := fiber.New()
 
@@ -47,6 +58,13 @@ func Start() {
 	api_stream.Get("/:stream_id", stream_controller.GetStreamByID)
 	api_stream.Put("/:stream_id", stream_controller.UpdateStream)
 	api_stream.Delete("/:stream_id", stream_controller.DeleteStream)
+
+	api_user := app.Group("/users")
+	api_user.Post("/", user_controller.CreateUser)
+	api_user.Get("/", user_controller.GetAllUser)
+	api_user.Get("/:user_id", user_controller.GetUserByID)
+	api_user.Put("/:user_id", user_controller.UpdateUserByID)
+	api_user.Delete("/:user_id", user_controller.DeleteUser)
 
 	URL_API := fmt.Sprint(config.MICRO.API.HOST,":",config.MICRO.API.PORT)
 	app.Listen(URL_API)

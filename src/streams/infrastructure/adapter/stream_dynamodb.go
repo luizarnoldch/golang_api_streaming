@@ -58,9 +58,10 @@ func (repo *StreamDynamoDBRepository) UpdateStreamById(stream_id string, stream 
 	}
 	var updatedStream model.Stream
 	if err := attributevalue.UnmarshalMap(output.Attributes, &updatedStream); err != nil {
-		log.Printf("Error unmarshaling UpdateConnectInstancesItem, %s", err.Error())
+		log.Printf("Error unmarshaling item UpdateStreamById, %s", err.Error())
 		return nil, appError.NewUnexpectedError(err.Error())
 	}
+	log.Printf("UpdateStreamById done successfully")
 	return &updatedStream, nil
 }
 
@@ -82,9 +83,10 @@ func (repo *StreamDynamoDBRepository) GetStreamById(stream_id string) (*model.St
 	}
 	var stream model.Stream
 	if err := attributevalue.UnmarshalMap(result.Item, &stream); err != nil {
-		log.Printf("Error unmarshaling result: %s", err.Error())
+		log.Printf("Error unmarshaling item GetStreamById, %s", err.Error())
 		return nil, appError.NewUnexpectedError(err.Error())
 	}
+	log.Printf("GetStreamById done successfully")
 	return &stream, nil
 }
 
@@ -102,11 +104,12 @@ func (repo *StreamDynamoDBRepository) GetAllStream() ([]model.Stream, *appError.
 		var stream model.Stream
 		err := attributevalue.UnmarshalMap(item, &stream)
 		if err != nil {
-			log.Printf("Error while unmarshaling item from GetAllCompanys, %s", err.Error())
+			log.Printf("Error while unmarshaling item from GetAllStream, %s", err.Error())
 			return nil, appError.NewUnexpectedError(err.Error())
 		}
 		response = append(response, stream)
 	}
+	log.Printf("GetAllStream done successfully")
 	return response, nil
 }
 
@@ -142,5 +145,6 @@ func (repo *StreamDynamoDBRepository) DeleteStream(stream_id string) (*appError.
         log.Printf("Error while DeleteStream, %s", err.Error())
         return appError.NewUnexpectedError(err.Error())
     }
+	log.Printf("DeleteStream done successfully")
 	return nil
 }

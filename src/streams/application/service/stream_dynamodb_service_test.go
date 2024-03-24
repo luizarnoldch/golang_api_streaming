@@ -1,127 +1,105 @@
 package service_test
 
-// import (
-// 	"context"
-// 	"main/src/streams/domain/model"
-// 	"main/src/streams/application/service"
-// 	"main/src/streams/infrastructure/adapter"
-// 	"main/src/streams/infrastructure/configuration"
-// 	dynamodbUtils "main/utils/dynamodb"
-// 	"testing"
+import (
+	"testing"
 
-// 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-// 	"github.com/stretchr/testify/suite"
-// )
+	streamMock "main/mocks"
+	"main/src/streams/application/service"
+	"main/src/streams/domain/model"
 
-// type StreamDynamoDBServiceSuite struct {
-// 	suite.Suite
-// 	tableName                   string
-// 	dynamoClient                *dynamodb.Client
-// 	service service.StreamService
-// }
+	"github.com/google/uuid"
+	"github.com/stretchr/testify/suite"
+)
 
-// func TestStreamSuite(t *testing.T) {
-// 	suite.Run(t, new(StreamDynamoDBServiceSuite))
-// }
+type StreamServiceDynamoDBSuite struct {
+	suite.Suite
+	streamDynamoDBRepository *streamMock.StreamRepository
+	streamServiceApplication service.StreamService
+}
 
-// func (suite *StreamDynamoDBServiceSuite) SetupSuite() {
-// 	ctx := context.TODO()
-// 	client, err := dynamodbUtils.GetLocalDynamoDBClient(ctx)
-// 	suite.NoError(err)
-// 	suite.dynamoClient = client
+const (
+	MethodUpdateStreamById = "UpdateStreamById"
+	MethodGetStreamById    = "GetStreamById"
+	MethodGetAllStream     = "GetAllStream"
+	MethodDeleteStream     = "DeleteStream"
+	MethodCreateStream     = "CreateStream"
+)
 
-// 	table_name := configuration.GetDynamoDBStreamTable()
-// 	suite.Equal("Test_Stream_Table", table_name)
-// 	suite.tableName = table_name
+func (suite *StreamServiceDynamoDBSuite) SetupTest() {
+	suite.streamDynamoDBRepository = new(streamMock.StreamRepository)
+	suite.streamServiceApplication = service.NewStreamDynamoDBService(suite.streamDynamoDBRepository)
+}
 
-// 	stream_infrastructure := adapter.NewStreamDynamoDBRepository(client, ctx, table_name)
-// 	stream_application := service.NewStreamDynamoDBService(stream_infrastructure)
+func (suite *StreamServiceDynamoDBSuite) TestCreateStream() {
+	new_stream := &model.Stream{
+		Name:      "Test Stream",
+		Cost:      10.99,
+		StartDate: "2023-01-01T00:00:00Z",
+		EndDate:   "2023-12-31T23:59:59Z",
+	}
 
-// 	suite.service = stream_application
-// }
+	suite.streamDynamoDBRepository.On(MethodCreateStream, new_stream).Return(new_stream, nil)
+	created_stream, err := suite.streamServiceApplication.CreateStream(new_stream)
+	suite.Nil(err, "Creating a stream should not return an error")
+	suite.NotNil(created_stream, "Created stream should not be nil")
+	suite.NotEqual("", created_stream.ID, "Created stream should have a non-empty ID")
+	suite.Equal(new_stream.Name, created_stream.Name, "Created stream name should match the input")
+	suite.streamDynamoDBRepository.AssertExpectations(suite.T())
+}
 
-// func (suite *StreamDynamoDBServiceSuite) SetupTest() {
-// 	ctx := context.TODO()
-// 	configuration.CreateLocalDynamoDBStreamTable(suite.dynamoClient, ctx, suite.tableName)
-// }
+func (suite *StreamServiceDynamoDBSuite) TestDeleteStream() {
+	streamID := uuid.NewString()
+	suite.streamDynamoDBRepository.On(MethodDeleteStream, streamID).Return(nil)
+	err := suite.streamServiceApplication.DeleteStream(streamID)
+	suite.Nil(err, "Deleting a stream should not return an error")
+	suite.streamDynamoDBRepository.AssertExpectations(suite.T())
+}
 
-// func (suite *StreamDynamoDBServiceSuite) TearDownTest() {
-// 	ctx := context.TODO()
-// 	configuration.DeleteLocalDynamoDBStreamTable(suite.dynamoClient, ctx, suite.tableName)
-// }
+func (suite *StreamServiceDynamoDBSuite) TestGetStreamById() {
+	streamID := uuid.NewString()
+	expectedStream := &model.Stream{
+		ID:   streamID,
+		Name: "Test Stream",
+	}
 
-// func (suite *StreamDynamoDBServiceSuite) TestCreateStreamAndGetStreamByIdSuccessful() {
-// 	stream := model.Stream{
-//         Name:      "test_name",
-//         Cost:      10.99,
-//         StartDate: "2022-01-01T15:04:05Z",
-//         EndDate:   "2023-12-01T15:04:05Z",
-//     }
+	suite.streamDynamoDBRepository.On(MethodGetStreamById, streamID).Return(expectedStream, nil)
+	stream, err := suite.streamServiceApplication.GetStreamById(streamID)
 
-//     createdStream, err := suite.service.CreateStream(&stream)
-//     suite.Nil(err)
-//     suite.NotNil(createdStream)
-//     suite.NotEmpty(createdStream.ID)
+	suite.Nil(err, "Getting a stream by ID should not return an error")
+	suite.Equal(expectedStream.ID, stream.ID, "The returned stream ID should match the expected ID")
 
-// 	retrievedStream, err := suite.service.GetStreamById(createdStream.ID)
-// 	suite.Nil(err)
+	suite.streamDynamoDBRepository.AssertExpectations(suite.T())
+}
 
-// 	suite.Equal(createdStream.ID, retrievedStream.ID)
-// 	suite.Equal(createdStream.Name, retrievedStream.Name)
-// 	suite.Equal(createdStream.Cost, retrievedStream.Cost)
-// 	suite.Equal(createdStream.StartDate, retrievedStream.StartDate)
-// 	suite.Equal(createdStream.EndDate, retrievedStream.EndDate)
-// }
+func (suite *StreamServiceDynamoDBSuite) TestUpdateStreamById() {
+	streamID := uuid.NewString()
+	updatedStream := &model.Stream{
+		ID:        streamID,
+		Name:      "Updated Stream",
+		Cost:      15.99,
+		StartDate: "2023-06-01T00:00:00Z",
+		EndDate:   "2023-12-31T23:59:59Z",
+	}
+	suite.streamDynamoDBRepository.On(MethodUpdateStreamById, streamID, updatedStream).Return(updatedStream, nil)
+	resultStream, err := suite.streamServiceApplication.UpdateStreamById(streamID, updatedStream)
+	suite.Nil(err, "Updating a stream should not return an error")
+	suite.Equal(updatedStream.Name, resultStream.Name, "Updated stream name should match")
+	suite.Equal(updatedStream.Cost, resultStream.Cost, "Updated stream cost should match")
+	suite.streamDynamoDBRepository.AssertExpectations(suite.T())
+}
 
-// func (suite *StreamDynamoDBServiceSuite) TestGetAllStreamSuccessful() {
-//     streams := []model.Stream{
-//         {
-//             Name:      "test_name_1",
-//             Cost:      11.00,
-//             StartDate: "2022-01-01T15:04:05Z",
-//             EndDate:   "2023-12-01T15:04:05Z",
-//         },
-//         {
-//             Name:      "test_name_2",
-//             Cost:      12.00,
-//             StartDate: "2022-01-02T15:04:05Z",
-//             EndDate:   "2023-12-02T15:04:05Z",
-//         },
-//         {
-//             Name:      "test_name_3",
-//             Cost:      13.00,
-//             StartDate: "2022-01-03T15:04:05Z",
-//             EndDate:   "2023-12-03T15:04:05Z",
-//         },
-//     }
+func (suite *StreamServiceDynamoDBSuite) TestGetAllStream() {
+	expectedStreams := []model.Stream{
+		{ID: uuid.NewString(), Name: "Stream 1"},
+		{ID: uuid.NewString(), Name: "Stream 2"},
+	}
+	suite.streamDynamoDBRepository.On(MethodGetAllStream).Return(expectedStreams, nil)
+	streams, err := suite.streamServiceApplication.GetAllStream()
+	suite.Nil(err, "Getting all streams should not return an error")
+	suite.Len(streams, len(expectedStreams), "The returned slice should have the same number of streams as expected")
+	suite.streamDynamoDBRepository.AssertExpectations(suite.T())
+}
 
-//     originalStreamsMap := make(map[string]model.Stream)
-
-//     for _, stream := range streams {
-//         createdStream, err := suite.service.CreateStream(&stream)
-//         suite.Nil(err)
-//         suite.NotNil(createdStream)
-//         suite.NotEmpty(createdStream.ID)
-
-//         stream.ID = createdStream.ID
-//         originalStreamsMap[createdStream.ID] = *createdStream
-//     }
-
-//     savedStreams, err := suite.service.GetAllStream()
-//     suite.Nil(err)
-//     suite.NotEmpty(savedStreams)
-
-//     suite.Len(savedStreams, len(streams), "Number of created streams should match")
-
-//     for _, stream := range savedStreams {
-//         originalStream, ok := originalStreamsMap[stream.ID]
-//         suite.True(ok, "Stream ID should exist in the original streams")
-//         suite.NotNil(stream)
-//         suite.NotEmpty(originalStream)
-
-//         // suite.Equal(originalStream.Name, stream.Name, "Stream name should match")
-//         // suite.Equal(originalStream.Cost, stream.Cost, "Stream cost should match")
-//         // suite.Equal(originalStream.StartDate, stream.StartDate, "Stream start date should match")
-// 		// suite.Equal(originalStream.EndDate, stream.EndDate, "Stream end date should match")
-//     }
-// }
+func TestStreamServiceDynamoDBSuite(t *testing.T) {
+	suite.Run(t, new(StreamServiceDynamoDBSuite))
+}

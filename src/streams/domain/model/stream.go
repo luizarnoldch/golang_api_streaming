@@ -17,25 +17,25 @@ type Stream struct {
 }
 
 func (s Stream) Validate() *appError.Error {
-	if err := validateUUID(s.ID); err != nil {
+	if err := ValidateUUID(s.ID); err != nil {
 		return err
 	}
-	if err := validateStringField(s.Name, 2); err != nil {
+	if err := ValidateStringField(s.Name, 2); err != nil {
 		return err
 	}
-	if err := validateCost(s.Cost); err != nil {
+	if err := ValidateCost(s.Cost); err != nil {
 		return err
 	}
-	if err := validateDate(s.StartDate); err != nil {
+	if err := ValidateDate(s.StartDate); err != nil {
 		return err
 	}
-	if err := validateDate(s.EndDate); err != nil {
+	if err := ValidateDate(s.EndDate); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateUUID(id string) *appError.Error {
+func ValidateUUID(id string) *appError.Error {
 	uuidRegex := regexp.MustCompile(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`)
 	if !uuidRegex.MatchString(id) {
 		return appError.NewValidationError("Invalid ID: The ID must be a valid UUID.")
@@ -43,14 +43,14 @@ func validateUUID(id string) *appError.Error {
 	return nil
 }
 
-func validateStringField(field string, minLength int) *appError.Error {
+func ValidateStringField(field string, minLength int) *appError.Error {
 	if len(strings.TrimSpace(field)) <= minLength {
 		return appError.NewValidationError("Field length is less than required minimum")
 	}
 	return nil
 }
 
-func validateCost(cost float64) *appError.Error {
+func ValidateCost(cost float64) *appError.Error {
     if cost < 0 {
         return appError.NewValidationError("Cost cannot be negative")
     }
@@ -61,7 +61,7 @@ func validateCost(cost float64) *appError.Error {
 }
 
 
-func validateDate(dateStr string) *appError.Error {
+func ValidateDate(dateStr string) *appError.Error {
 	_, err := time.Parse(time.RFC3339, dateStr)
 	if err != nil {
 		if _, err := time.Parse(time.RFC3339Nano, dateStr); err != nil {

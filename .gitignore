@@ -3,3 +3,4 @@ go.sum
 coverage-report.out
 coverage-report.html
 bin
+.env
