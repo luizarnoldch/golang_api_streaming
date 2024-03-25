@@ -23,6 +23,8 @@ func (service *userServiceImpl) CreateUser(user *model.User) (*model.User, *appE
 		user.ID = uuid.NewString()
 	}
 	user.CreatedAt = time.Now().Format(time.RFC3339)
+	user.LastUpdate = time.Now().Format(time.RFC3339)
+	user.LastActivity = time.Now().Format(time.RFC3339)
 	if err := user.Validate(); err != nil {
 		log.Printf("error while validating request from CreateStream Service: %v", err)
 		return nil, err

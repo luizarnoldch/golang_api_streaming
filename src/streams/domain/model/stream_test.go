@@ -13,7 +13,7 @@ type StreamModelSuite struct {
 	suite.Suite
 }
 
-func (suite *StreamModelSuite) SetupSuite() {}
+func (suite *StreamModelSuite) SetupSuite()    {}
 func (suite *StreamModelSuite) TearDownSuite() {}
 
 func (suite *StreamModelSuite) TestStreamValidate() {
@@ -23,7 +23,7 @@ func (suite *StreamModelSuite) TestStreamValidate() {
 	var tests = []struct {
 		name     string
 		stream   model.Stream
-		expected bool // true if no error is expected, false otherwise
+		expected bool
 	}{
 		{"Valid Stream", model.Stream{ID: uuid.NewString(), Name: "Valid Name", Cost: 100.00, StartDate: now, EndDate: future}, true},
 		{"Invalid UUID", model.Stream{ID: "invalid-uuid", Name: "Valid Name", Cost: 100.00, StartDate: now, EndDate: future}, false},

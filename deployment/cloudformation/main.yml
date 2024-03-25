@@ -16,7 +16,229 @@ Resources:
 
   # *** Cognito ***
 
+  PreSignupTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/pre-sign-up.zip
+      FunctionName: !Sub "${ProjectName}-test-pre-sign-up"
+      Handler: bootstrap
+      Runtime: provided.al2
+
+  PostConfirmationTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/post_confirmation.zip
+      FunctionName: !Sub "${ProjectName}-test-post-confirmation"
+      Handler: bootstrap
+      Runtime: provided.al2
+      Environment:
+        Variables:
+          USER_TABLE: !Ref UserTable
+          ENV: !Ref Stage
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserTable
+        - KMSDecryptPolicy:
+            KeyId: !GetAtt GlobalTableKMSKey.Arn
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - kms:Decrypt
+                - kms:Encrypt
+                - kms:ReEncrypt*
+                - kms:GenerateDataKey*
+                - kms:DescribeKey
+              Resource: !GetAtt GlobalTableKMSKey.Arn
   
+  PreAuthenticationTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/pre-auth.zip
+      FunctionName: !Sub "${ProjectName}-test-pre-auth"
+      Handler: bootstrap
+      Runtime: provided.al2
+  
+  PostAuthenticationTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/post-auth.zip
+      FunctionName: !Sub "${ProjectName}-test-post-auth"
+      Handler: bootstrap
+      Runtime: provided.al2
+  
+  PreTokenGenerationTriggerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: go1.x
+    Properties:
+      CodeUri: ../../bin/pre-token-auth.zip
+      FunctionName: !Sub "${ProjectName}-test-pre-token-auth"
+      Handler: bootstrap
+      Runtime: provided.al2
+  
+  CognitoUserPool:
+    Type: AWS::Cognito::UserPool
+    DependsOn: 
+      - PreSignupTriggerFunction
+    Properties:
+      UserPoolName: !Sub ${ProjectName}-cognitostream
+      UsernameAttributes:
+        - email
+      UsernameConfiguration:
+        CaseSensitive: true
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+          TemporaryPasswordValidityDays: 7
+      MfaConfiguration: "OFF"
+      AccountRecoverySetting:
+        RecoveryMechanisms:
+          - Name: verified_email
+            Priority: 1
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
+      AutoVerifiedAttributes:
+        - email
+      UserAttributeUpdateSettings:
+        AttributesRequireVerificationBeforeUpdate: 
+          - email
+      Schema:
+        - AttributeDataType: "String"
+          Mutable: true
+          Name: email
+          Required: true
+      LambdaConfig:
+        PreSignUp: !GetAtt PreSignupTriggerFunction.Arn
+        PostConfirmation: !GetAtt PostConfirmationTriggerFunction.Arn
+        PreAuthentication : !GetAtt PreAuthenticationTriggerFunction.Arn
+        PostAuthentication: !GetAtt PostAuthenticationTriggerFunction.Arn
+        PreTokenGeneration: !GetAtt PreTokenGenerationTriggerFunction.Arn
+
+  LambdaPresignupPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - PreSignupTriggerFunction
+    Properties:
+      FunctionName: !GetAtt PreSignupTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  LambdaPostConfirmationPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - PostConfirmationTriggerFunction
+    Properties:
+      FunctionName: !GetAtt PostConfirmationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+  
+  PreAuthenticationPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - PreAuthenticationTriggerFunction
+    Properties:
+      FunctionName: !GetAtt PreAuthenticationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+  
+  PostAuthenticationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - PostAuthenticationTriggerFunction
+    Properties:
+      FunctionName: !GetAtt PostAuthenticationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  PreTokenGenerationTriggerPermission:
+    Type: AWS::Lambda::Permission
+    DependsOn: 
+      - PreTokenGenerationTriggerFunction
+    Properties:
+      FunctionName: !GetAtt PreTokenGenerationTriggerFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: cognito-idp.amazonaws.com
+      SourceArn: !GetAtt CognitoUserPool.Arn
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties: 
+      Domain: !Sub ${ProjectName}-cognitostreamdomain
+      UserPoolId: !Ref CognitoUserPool
+
+  CognitoTestGoogleIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    DependsOn: CognitoUserPool
+    Properties:
+      ProviderName: Google
+      ProviderType: Google
+      UserPoolId: !Ref CognitoUserPool
+      AttributeMapping: 
+        email: 'email'
+        family_name: 'family_name'
+        given_name: 'given_name'
+        name: 'name'
+        username: 'sub'
+      ProviderDetails:
+        client_id: !Sub GoogleClientId
+        client_secret: !Sub GoogleClientSecret
+        authorize_scopes: "openid email profile"
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    DependsOn: CognitoTestGoogleIdentityProvider
+    Properties:
+      UserPoolId: !Ref CognitoUserPool
+      ClientName: !Sub ${ProjectName}-cognitostreamclient
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_REFRESH_TOKEN_AUTH 
+        - ALLOW_CUSTOM_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+      AuthSessionValidity: 3
+      RefreshTokenValidity: 30
+      AccessTokenValidity: 60
+      IdTokenValidity: 60
+      TokenValidityUnits:
+        AccessToken: minutes
+        RefreshToken: days
+        IdToken: minutes
+      EnableTokenRevocation: true
+      PreventUserExistenceErrors: ENABLED
+      CallbackURLs:
+        - "http://localhost:3000/callback"
+      LogoutURLs:
+        - "http://localhost:3000"
+      SupportedIdentityProviders:
+        - "COGNITO"
+        - "Google"
+      AllowedOAuthFlowsUserPoolClient: true
+      AllowedOAuthFlows:
+        - code
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - phone
+        - profile
+        - aws.cognito.signin.user.admin
 
   # *** API ***
 
@@ -510,3 +732,15 @@ Outputs:
   CentralAPIGateway:
     Description: "API Gateway endpoint URL para documentos"
     Value: !Sub "https://${CentralAPIGateway}.execute-api.${AWS::Region}.amazonaws.com/${Stage}"
+  
+  CognitoUserPoolId:
+    Description: ID of the Cognito User Pool
+    Value: !Ref CognitoUserPool
+
+  CognitoUserPoolDomain:
+    Description: Domain of the Cognito User Pool
+    Value: !Ref CognitoUserPoolDomain
+    
+  CognitoUserPoolClient:
+    Description: Client of the Cognito User Pool
+    Value: !Ref CognitoUserPoolClient
